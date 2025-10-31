@@ -14,7 +14,7 @@ from langchain.chat_models import init_chat_model
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document
-from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
 
@@ -171,10 +171,14 @@ JSON (only the array, no additional text):"""
 class GraphRAG:
     """Hybrid RAG system combining vector search with knowledge graph."""
 
-    def __init__(self, llm, embeddings):
+    def __init__(self, llm, embeddings, persist_directory="./chroma_db"):
         self.llm = llm
         self.embeddings = embeddings
-        self.vector_store = InMemoryVectorStore(embeddings)
+        self.persist_directory = persist_directory
+        self.vector_store = Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embeddings
+        )
         self.knowledge_graph = KnowledgeGraph()
         self.extractor = EntityRelationExtractor(llm)
         self.documents = {}
@@ -301,13 +305,14 @@ If the information is not in the context, say so clearly:"""
 class DementiaChatbot:
     """Interactive chatbot for Dementia Guidelines."""
 
-    def __init__(self, pdf_folder: str):
+    def __init__(self, pdf_folder: str, persist_directory: str = "./chroma_db"):
         self.pdf_folder = pdf_folder
+        self.persist_directory = persist_directory
         self.graph_rag = None
         self.conversation_history = []
         self.is_loaded = False
 
-    def load_pdfs(self, use_llm_extraction: bool = False):
+    def load_pdfs(self, use_llm_extraction: bool = False, force_reload: bool = False):
         """Load PDFs from the Dementia Guidelines folder."""
         print(f"\nLoading PDFs from: {self.pdf_folder}")
 
@@ -316,6 +321,37 @@ class DementiaChatbot:
             return f"❌ Error: Folder '{self.pdf_folder}' does not exist!"
 
         try:
+            # Initialize GraphRAG with persistence
+            self.graph_rag = GraphRAG(llm=llm, embeddings=embeddings, persist_directory=self.persist_directory)
+
+            # Check if vector store already has data
+            persist_path = Path(self.persist_directory)
+            has_existing_data = persist_path.exists() and any(persist_path.iterdir())
+
+            if has_existing_data and not force_reload:
+                print("Found existing Chroma database. Loading from disk...")
+                self.is_loaded = True
+                # Still need to rebuild knowledge graph
+                loader = PyPDFDirectoryLoader(self.pdf_folder)
+                documents = loader.load()
+                chunks = self.graph_rag.text_splitter.split_documents(documents)
+
+                print("Rebuilding knowledge graph...")
+                for i, chunk in enumerate(chunks):
+                    doc_id = f"doc_{i}"
+                    self.graph_rag.documents[doc_id] = chunk
+
+                    # Show progress with chunk preview
+                    chunk_preview = chunk.page_content[:100].replace('\n', ' ')
+                    print(f"Processing chunk {i+1}/{len(chunks)}: {chunk_preview}...")
+
+                    triplets = self.graph_rag.extractor.extract(chunk.page_content, use_llm=use_llm_extraction)
+                    for subject, predicate, obj in triplets:
+                        self.graph_rag.knowledge_graph.add_triplet(subject, predicate, obj, doc_id)
+
+                return f"✅ Loaded existing vector database from disk!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}"
+
+            # Load PDFs and process
             loader = PyPDFDirectoryLoader(self.pdf_folder)
             documents = loader.load()
 
@@ -324,11 +360,10 @@ class DementiaChatbot:
 
             print(f"Loaded {len(documents)} pages from PDFs")
 
-            self.graph_rag = GraphRAG(llm=llm, embeddings=embeddings)
             self.graph_rag.add_documents(documents, use_llm_extraction=use_llm_extraction)
 
             self.is_loaded = True
-            return f"✅ Successfully loaded {len(documents)} pages from PDFs!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}"
+            return f"✅ Successfully loaded {len(documents)} pages from PDFs!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}\n\n💾 Vector database saved to: {self.persist_directory}"
 
         except Exception as e:
             return f"❌ Error loading PDFs: {str(e)}"
