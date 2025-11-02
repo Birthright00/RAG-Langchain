@@ -1,0 +1,47 @@
+======================================
+AI MODELS - PROFESSIONAL SLIDE CONTENT
+(Matching the style of the reference slide)
+======================================
+
+BOX 1: GPT-4o-mini
+-------------------
+Conversational language model optimized for cost and speed, using transformer architecture to process natural language queries and generate evidence-based responses about dementia guidelines. Handles entity extraction and relationship mapping from medical documents.
+
+
+BOX 2: text-embedding-3-large
+------------------------------
+OpenAI's advanced embedding model that converts document chunks into 3072-dimensional vector representations, enabling semantic similarity search across dementia care guidelines with high accuracy and context-relevant retrieval capabilities.
+
+
+BOX 3: GPT-4o Vision
+--------------------
+Multi-modal foundation model that uses vision-language capabilities to analyze uploaded home images, identify dementia-unfriendly design elements, and generate specific, actionable recommendations based on retrieved guideline context.
+
+
+BOTTOM BOX: Hybrid Retrieval System (ChromaDB + Knowledge Graph)
+-----------------------------------------------------------------
+Dual-approach retrieval combining vector similarity search with graph-based entity relationships. ChromaDB provides semantic search through persistent vector storage, while NetworkX knowledge graph uses spaCy NER to extract medical entities and map relationships, producing enhanced context by merging both retrieval methods for comprehensive question answering.
+
+
+======================================
+ALTERNATIVE: More Concise Version
+======================================
+
+BOX 1: GPT-4o-mini
+-------------------
+Fast, cost-effective language model for conversational AI. Processes user queries, extracts medical entities from documents, and generates evidence-based responses about dementia care guidelines using transformer architecture.
+
+
+BOX 2: text-embedding-3-large
+------------------------------
+High-dimensional embedding model (3072-d vectors) that enables semantic similarity search. Converts dementia guideline chunks into searchable representations for accurate context retrieval.
+
+
+BOX 3: GPT-4o Vision
+--------------------
+Multi-modal model with vision-language capabilities. Analyzes home environment images to identify design issues and provide dementia-friendly recommendations aligned with evidence-based guidelines.
+
+
+BOTTOM BOX: ChromaDB + Knowledge Graph Hybrid Retrieval
+--------------------------------------------------------
+Dual retrieval approach combining vector similarity search (ChromaDB) with graph-based entity relationships (NetworkX + spaCy). Merges semantic search results with knowledge graph traversal for comprehensive, context-rich document retrieval.
