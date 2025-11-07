@@ -244,7 +244,7 @@ class GraphRAG:
     def save_graph_data(self, filepath: str = None):
         """Save knowledge graph and documents to disk."""
         if filepath is None:
-            filepath = os.path.join(self.persist_directory, "graph_data.pkl")
+            filepath = os.path.join(self.persist_directory, "graph_data_claude.pkl")
 
         data = {
             "knowledge_graph": self.knowledge_graph,
@@ -259,7 +259,7 @@ class GraphRAG:
     def load_graph_data(self, filepath: str = None) -> bool:
         """Load knowledge graph and documents from disk."""
         if filepath is None:
-            filepath = os.path.join(self.persist_directory, "graph_data.pkl")
+            filepath = os.path.join(self.persist_directory, "graph_data_claude.pkl")
 
         if not os.path.exists(filepath):
             return False
@@ -502,32 +502,70 @@ class DementiaChatbot:
 REFERENCE GUIDELINES:
 {guidelines_context}
 
+HOW TO INTERPRET CONTRAST REQUIREMENTS FROM THE GUIDELINES:
+The guidelines above mention "contrast," "visual contrast," "colour contrast," and "tonal contrast" - these all refer to the SAME principle:
+
+✓ GOOD CONTRAST (desired) = Different/distinct colors or tones that make objects easily distinguishable
+   - Examples: Dark door against light wall, contrasting handrails, distinct furniture colors
+   - The guidelines say to "provide good visual contrast," "use contrasting colours," "ensure contrast"
+
+✗ POOR/INSUFFICIENT CONTRAST (problem) = Similar colors or tones that blend together
+   - Examples: White door on white wall, beige furniture on beige floor, light fixtures on light walls
+   - Makes it hard for people with dementia to distinguish objects and boundaries
+
 INSTRUCTIONS:
 1. Look at EVERY visible element in the image
-2. For EACH item you identify, use this exact format:
+2. Compare each element's color/tone with its background (wall, floor, etc.)
+3. Identify items that LACK sufficient contrast (similar colors that blend together)
+4. Output your findings in BOTH formats:
+   a) Human-readable markdown format
+   b) JSON format
 
-**Item:** [Name the specific item - e.g., "Overhead lighting fixture", "Beige carpet", "Dark wooden dining chair", "White door against white wall"]
-**Issue:** [Describe what's problematic about this specific item according to the dementia guidelines above]
-**Recommendation:** [Give a specific, actionable change - include colors, materials, or placement details]
+OUTPUT FORMAT:
+
+First, provide a markdown analysis using this format for each item:
+
+**Item:** [Name the specific item - e.g., "White door against white wall", "Beige sofa on beige carpet"]
+**Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
+**Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
+**Recommendation:** [Give a specific, actionable change with HIGH CONTRAST colors to match guideline requirements]
 
 ---
 
+Then, after all items, provide a JSON summary:
+
+```json
+{{
+  "analysis_summary": {{
+    "total_issues": <number>
+  }},
+  "issues": [
+    {{
+      "item": "Item name",
+      "issue": "Description of the issue",
+      "guideline_reference": "Referenced guideline",
+      "recommendation": "Specific recommendation"
+    }}
+  ]
+}}
+```
+
 CRITICAL ELEMENTS TO ASSESS:
+✓ Doors & Frames: Do they have GOOD CONTRAST against walls? (Similar colors = problem)
+✓ Furniture: Does it have GOOD CONTRAST against walls/floors? (Similar tones = problem)
+✓ Fixtures: Do switches, outlets, handles have GOOD CONTRAST? (Blending in = problem)
+✓ Floor-to-Wall transitions: Is there CLEAR CONTRAST between floor and skirting/wall? (Similar = problem)
 ✓ Lighting: Type, brightness, glare, shadows, natural light
 ✓ Flooring: Pattern, color, material, reflectivity, trip hazards
-✓ Walls: Color, contrast with floors/doors, visual clutter
-✓ Furniture: Color contrast, placement, sharp edges, stability
-✓ Doors & Frames: Contrast with walls, visibility, hardware
-✓ Windows: Glare, coverings, safety
 ✓ Décor: Visual clutter, confusing patterns, mirrors
 ✓ Safety: Grab bars, clear pathways, hazards
 
 IMPORTANT:
-- Reference specific guideline principles from the context above
-- Be concrete: Instead of "poor lighting," say "insufficient task lighting over dining table"
-- Use the exact format for EVERY item you identify
-- Separate each item with "---"
+- ONLY flag items that LACK sufficient contrast as problems (don't flag good contrast as a problem!)
+- Reference specific guideline principles from the context above in your analysis
+- Be concrete about the exact colors/tones you see and why they lack contrast
 - Analyze what you SEE in the image, not generic advice
+- Provide BOTH the markdown analysis AND the JSON summary
 
 Begin your analysis now:"""
 
@@ -557,7 +595,8 @@ Begin your analysis now:"""
 
 # Global chatbot instance
 pdf_folder = r"Dementia Guidelines"
-chatbot = DementiaChatbot(pdf_folder)
+# Use separate database directory for Claude to avoid embedding dimension conflicts with OpenAI
+chatbot = DementiaChatbot(pdf_folder, persist_directory="./chroma_db_claude")
 
 
 def load_pdfs_handler(use_llm_extraction):

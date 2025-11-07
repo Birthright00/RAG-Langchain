@@ -33,7 +33,9 @@ if not os.environ.get("OPENAI_API_KEY"):
 
 # Initialize LLM and embeddings
 llm = init_chat_model("gpt-4o-mini", model_provider="openai")
-vision_llm = init_chat_model("gpt-4o", model_provider="openai")  # Vision model for image analysis
+# Use ChatOpenAI directly for vision to ensure proper image handling
+from langchain_openai import ChatOpenAI
+vision_llm = ChatOpenAI(model="gpt-4o", temperature=0)
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 # Load spaCy model
@@ -185,6 +187,15 @@ class GraphRAG:
             persist_directory=persist_directory,
             embedding_function=embeddings
         )
+
+        # Debug: Check vector store contents
+        try:
+            collection = self.vector_store._collection
+            count = collection.count()
+            print(f"[DEBUG] Vector store initialized. Document count: {count}")
+        except Exception as e:
+            print(f"[DEBUG] Could not check vector store count: {e}")
+
         self.knowledge_graph = KnowledgeGraph()
         self.extractor = EntityRelationExtractor(llm)
         self.documents = {}
@@ -280,20 +291,44 @@ class GraphRAG:
 
     def retrieve(self, query: str, k: int = 4, use_graph: bool = True) -> List[Document]:
         """Hybrid retrieval using vector search and knowledge graph."""
-        vector_results = self.vector_store.similarity_search(query, k=k)
+        try:
+            print(f"[DEBUG] Attempting vector search with query: {query[:100]}...")
+            vector_results = self.vector_store.similarity_search(query, k=k)
+            print(f"[DEBUG] Vector search returned {len(vector_results)} results")
+        except Exception as e:
+            print(f"[ERROR] Vector search failed: {e}")
+            import traceback
+            traceback.print_exc()
+            vector_results = []
 
         if not use_graph:
             return vector_results
 
-        query_entities = self.extractor.extract_with_spacy(query)
-        query_entity_names = set([ent[0] for ent in query_entities])
+        try:
+            # Use both spaCy and LLM extraction for better entity detection
+            query_entities = self.extractor.extract(query, use_llm=True)  # Set to True to enable LLM extraction
+            query_entity_names = set([ent[0] for ent in query_entities])
+            print(f"[DEBUG] Extracted entities from query: {query_entity_names}")
 
-        graph_entities = set()
-        for entity in query_entity_names:
-            graph_entities.update(self.knowledge_graph.get_neighbors(entity, depth=2))
+            graph_entities = set()
+            for entity in query_entity_names:
+                neighbors = self.knowledge_graph.get_neighbors(entity, depth=2)
+                if neighbors:
+                    print(f"[DEBUG] Entity '{entity}' has {len(neighbors)} neighbors in graph")
+                graph_entities.update(neighbors)
 
-        graph_doc_ids = self.knowledge_graph.get_related_docs(graph_entities)
-        graph_results = [self.documents[doc_id] for doc_id in graph_doc_ids if doc_id in self.documents]
+            print(f"[DEBUG] Total graph entities found: {len(graph_entities)}")
+
+            graph_doc_ids = self.knowledge_graph.get_related_docs(graph_entities)
+            print(f"[DEBUG] Graph doc IDs: {len(graph_doc_ids)}")
+
+            graph_results = [self.documents[doc_id] for doc_id in graph_doc_ids if doc_id in self.documents]
+            print(f"[DEBUG] Graph search returned {len(graph_results)} results")
+        except Exception as e:
+            print(f"[ERROR] Graph search failed: {e}")
+            import traceback
+            traceback.print_exc()
+            graph_results = []
 
         all_results = vector_results + graph_results
 
@@ -304,6 +339,7 @@ class GraphRAG:
                 seen.add(doc.page_content)
                 unique_results.append(doc)
 
+        print(f"[DEBUG] Total unique results after deduplication: {len(unique_results)}")
         return unique_results[:k*2]
 
     def query(self, question: str, use_graph: bool = True) -> Dict[str, any]:
@@ -374,10 +410,49 @@ class DementiaChatbot:
             if has_existing_data and not force_reload:
                 print("Found existing Chroma database. Checking for saved graph data...")
 
+                # Check if vector store actually has documents
+                try:
+                    vector_count = self.graph_rag.vector_store._collection.count()
+                    print(f"Vector store has {vector_count} embeddings")
+                except Exception as e:
+                    print(f"Could not check vector store: {e}")
+                    vector_count = 0
+
                 # Try to load saved knowledge graph and documents
                 if self.graph_rag.load_graph_data():
+                    # Verify vector store has data
+                    if vector_count == 0:
+                        print("\n⚠️ WARNING: Vector store is empty! Need to reprocess PDFs to create embeddings.")
+                        print("Processing PDFs to populate vector store...")
+
+                        # Load and process PDFs to populate vector store
+                        loader = PyPDFDirectoryLoader(self.pdf_folder)
+                        documents = loader.load()
+
+                        if documents:
+                            # Only add to vector store, knowledge graph already loaded
+                            chunks = self.graph_rag.text_splitter.split_documents(documents)
+
+                            # Clean metadata
+                            for i, chunk in enumerate(chunks):
+                                clean_metadata = {}
+                                for key, value in chunk.metadata.items():
+                                    if isinstance(value, (str, int, float, bool)):
+                                        clean_metadata[key] = value
+                                    elif isinstance(value, list):
+                                        clean_metadata[key] = str(value)
+                                clean_metadata["chunk_id"] = f"doc_{i}"
+                                chunk.metadata = clean_metadata
+
+                            print(f"Adding {len(chunks)} chunks to vector store...")
+                            self.graph_rag.vector_store.add_documents(chunks)
+                            print("✅ Vector store populated!")
+
+                        self.is_loaded = True
+                        return f"✅ Loaded all data from disk and populated vector store!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}\n- Documents: {len(self.graph_rag.documents)}\n- Vector Embeddings: {len(chunks)}\n\n⚡ Ready for queries!"
+
                     self.is_loaded = True
-                    return f"✅ Loaded all data from disk (vector store + knowledge graph)!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}\n- Documents: {len(self.graph_rag.documents)}\n\n⚡ Fast load - no PDF processing needed!"
+                    return f"✅ Loaded all data from disk (vector store + knowledge graph)!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}\n- Documents: {len(self.graph_rag.documents)}\n- Vector Embeddings: {vector_count}\n\n⚡ Fast load - no PDF processing needed!"
                 else:
                     print("No saved graph data found. Rebuilding knowledge graph from PDFs...")
                     self.is_loaded = True
@@ -502,32 +577,70 @@ class DementiaChatbot:
 REFERENCE GUIDELINES:
 {guidelines_context}
 
+HOW TO INTERPRET CONTRAST REQUIREMENTS FROM THE GUIDELINES:
+The guidelines above mention "contrast," "visual contrast," "colour contrast," and "tonal contrast" - these all refer to the SAME principle:
+
+✓ GOOD CONTRAST (desired) = Different/distinct colors or tones that make objects easily distinguishable
+   - Examples: Dark door against light wall, contrasting handrails, distinct furniture colors
+   - The guidelines say to "provide good visual contrast," "use contrasting colours," "ensure contrast"
+
+✗ POOR/INSUFFICIENT CONTRAST (problem) = Similar colors or tones that blend together
+   - Examples: White door on white wall, beige furniture on beige floor, light fixtures on light walls
+   - Makes it hard for people with dementia to distinguish objects and boundaries
+
 INSTRUCTIONS:
 1. Look at EVERY visible element in the image
-2. For EACH item you identify, use this exact format:
+2. Compare each element's color/tone with its background (wall, floor, etc.)
+3. Identify items that LACK sufficient contrast (similar colors that blend together)
+4. Output your findings in BOTH formats:
+   a) Human-readable markdown format
+   b) JSON format
 
-**Item:** [Name the specific item - e.g., "Overhead lighting fixture", "Beige carpet", "Dark wooden dining chair", "White door against white wall"]
-**Issue:** [Describe what's problematic about this specific item according to the dementia guidelines above]
-**Recommendation:** [Give a specific, actionable change - include colors, materials, or placement details]
+OUTPUT FORMAT:
+
+First, provide a markdown analysis using this format for each item:
+
+**Item:** [Name the specific item - e.g., "White door against white wall", "Beige sofa on beige carpet"]
+**Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
+**Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
+**Recommendation:** [Give a specific, actionable change with HIGH CONTRAST colors to match guideline requirements]
 
 ---
 
+Then, after all items, provide a JSON summary:
+
+```json
+{{
+  "analysis_summary": {{
+    "total_issues": <number>
+  }},
+  "issues": [
+    {{
+      "item": "Item name",
+      "issue": "Description of the issue",
+      "guideline_reference": "Referenced guideline",
+      "recommendation": "Specific recommendation"
+    }}
+  ]
+}}
+```
+
 CRITICAL ELEMENTS TO ASSESS:
+✓ Doors & Frames: Do they have GOOD CONTRAST against walls? (Similar colors = problem)
+✓ Furniture: Does it have GOOD CONTRAST against walls/floors? (Similar tones = problem)
+✓ Fixtures: Do switches, outlets, handles have GOOD CONTRAST? (Blending in = problem)
+✓ Floor-to-Wall transitions: Is there CLEAR CONTRAST between floor and skirting/wall? (Similar = problem)
 ✓ Lighting: Type, brightness, glare, shadows, natural light
 ✓ Flooring: Pattern, color, material, reflectivity, trip hazards
-✓ Walls: Color, contrast with floors/doors, visual clutter
-✓ Furniture: Color contrast, placement, sharp edges, stability
-✓ Doors & Frames: Contrast with walls, visibility, hardware
-✓ Windows: Glare, coverings, safety
 ✓ Décor: Visual clutter, confusing patterns, mirrors
 ✓ Safety: Grab bars, clear pathways, hazards
 
 IMPORTANT:
-- Reference specific guideline principles from the context above
-- Be concrete: Instead of "poor lighting," say "insufficient task lighting over dining table"
-- Use the exact format for EVERY item you identify
-- Separate each item with "---"
+- ONLY flag items that LACK sufficient contrast as problems (don't flag good contrast as a problem!)
+- Reference specific guideline principles from the context above in your analysis
+- Be concrete about the exact colors/tones you see and why they lack contrast
 - Analyze what you SEE in the image, not generic advice
+- Provide BOTH the markdown analysis AND the JSON summary
 
 Begin your analysis now:"""
 
