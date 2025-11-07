@@ -600,10 +600,10 @@ OUTPUT FORMAT:
 
 First, provide a markdown analysis using this format for each item:
 
-**Item:** [Name the specific item - e.g., "White door against white wall", "Beige sofa on beige carpet"]
+**Item:** [Name the specific item only - e.g., "White door", "Beige sofa"]
 **Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
 **Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give a specific, actionable change with HIGH CONTRAST colors to match guideline requirements]
+**Recommendation:** [Give a DEFINITE, specific action - use "Change to...", "Replace with...", "Paint/Install..." format with HIGH CONTRAST colors to match guideline requirements]
 
 ---
 
