@@ -54,13 +54,30 @@ class KnowledgeGraph:
 
     def add_triplet(self, subject: str, predicate: str, object_: str, doc_id: str = None):
         """Add a subject-predicate-object triplet to the graph."""
-        self.graph.add_edge(subject, object_, relation=predicate, doc_id=doc_id)
+        # Validate inputs are hashable (strings, not lists or other unhashable types)
+        if not isinstance(subject, str):
+            subject = str(subject) if subject else "unknown"
+        if not isinstance(predicate, str):
+            predicate = str(predicate) if predicate else "related_to"
+        if not isinstance(object_, str):
+            object_ = str(object_) if object_ else "unknown"
 
-        if doc_id:
-            for entity in [subject, object_]:
-                if entity not in self.entity_to_docs:
-                    self.entity_to_docs[entity] = set()
-                self.entity_to_docs[entity].add(doc_id)
+        # Skip empty or invalid triplets
+        if not subject or not predicate or not object_:
+            return
+
+        try:
+            self.graph.add_edge(subject, object_, relation=predicate, doc_id=doc_id)
+
+            if doc_id:
+                for entity in [subject, object_]:
+                    if entity not in self.entity_to_docs:
+                        self.entity_to_docs[entity] = set()
+                    self.entity_to_docs[entity].add(doc_id)
+        except TypeError as e:
+            print(f"[WARNING] Skipping invalid triplet: ({type(subject).__name__}, {type(predicate).__name__}, {type(object_).__name__})")
+            print(f"[WARNING] Values: ({subject}, {predicate}, {object_})")
+            print(f"[WARNING] Error: {e}")
 
     def get_neighbors(self, entity: str, depth: int = 1) -> Set[str]:
         """Get neighboring entities up to specified depth."""
@@ -157,7 +174,35 @@ JSON (only the array, no additional text):"""
                     content = content[4:]
 
             triplets_raw = json.loads(content)
-            triplets = [(s, p, o) for s, p, o in triplets_raw]
+
+            # Validate and sanitize triplets
+            triplets = []
+            for item in triplets_raw:
+                if not isinstance(item, (list, tuple)) or len(item) != 3:
+                    continue  # Skip malformed triplets
+
+                s, p, o = item
+
+                # Ensure all parts are strings (not lists or other types)
+                if isinstance(s, list):
+                    s = str(s) if s else "unknown"
+                elif not isinstance(s, str):
+                    s = str(s)
+
+                if isinstance(p, list):
+                    p = str(p) if p else "related_to"
+                elif not isinstance(p, str):
+                    p = str(p)
+
+                if isinstance(o, list):
+                    o = str(o) if o else "unknown"
+                elif not isinstance(o, str):
+                    o = str(o)
+
+                # Only add if all parts are non-empty strings
+                if s and p and o and isinstance(s, str) and isinstance(p, str) and isinstance(o, str):
+                    triplets.append((s.strip(), p.strip(), o.strip()))
+
             return triplets
         except Exception as e:
             print(f"LLM extraction error: {e}")
@@ -209,13 +254,23 @@ class GraphRAG:
                 elif isinstance(value, list):
                     # Convert lists to strings
                     clean_metadata[key] = str(value)
+                elif isinstance(value, dict):
+                    # Convert dicts to strings
+                    clean_metadata[key] = str(value)
+                elif value is None:
+                    clean_metadata[key] = ""
+                else:
+                    # Convert any other types to string
+                    clean_metadata[key] = str(value)
             clean_metadata["chunk_id"] = f"doc_{i}"
             chunk.metadata = clean_metadata
 
         # Add to vector store
         print("Adding documents to vector store...")
         try:
-            self.vector_store.add_documents(chunks)
+            # Generate explicit IDs for each chunk to avoid Chroma auto-generation issues
+            chunk_ids = [f"chunk_{i}" for i in range(len(chunks))]
+            self.vector_store.add_documents(chunks, ids=chunk_ids)
         except Exception as e:
             print(f"Vector store error: {e}")
             import traceback
@@ -223,9 +278,11 @@ class GraphRAG:
             # Fallback: add one by one
             for idx, chunk in enumerate(chunks):
                 try:
-                    self.vector_store.add_documents([chunk])
+                    self.vector_store.add_documents([chunk], ids=[f"chunk_{idx}"])
                 except Exception as e2:
                     print(f"Failed to add chunk {idx}: {e2}")
+                    print(f"Chunk metadata: {chunk.metadata}")
+                    print(f"Metadata types: {[(k, type(v)) for k, v in chunk.metadata.items()]}")
 
         print("Building knowledge graph...")
         for i, chunk in enumerate(chunks):
@@ -528,7 +585,7 @@ First, provide a markdown analysis using this format for each item:
 **Item:** [Name the specific item only - e.g., "White door", "Beige sofa"]
 **Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
 **Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give a DEFINITE, specific action - use "Change to...", "Replace with...", "Paint/Install..." format with HIGH CONTRAST colors to match guideline requirements]
+**Recommendation:** [Give ONE SPECIFIC action with EXACT color/material. Format: "Paint the [item] [specific color name like 'dark charcoal grey' or 'deep navy blue']" OR "Replace with a [specific color] [item]" OR "Install [specific colored item]". Must include exact color names, not generic terms.]
 
 ---
 

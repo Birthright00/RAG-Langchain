@@ -56,13 +56,30 @@ class KnowledgeGraph:
 
     def add_triplet(self, subject: str, predicate: str, object_: str, doc_id: str = None):
         """Add a subject-predicate-object triplet to the graph."""
-        self.graph.add_edge(subject, object_, relation=predicate, doc_id=doc_id)
+        # Validate inputs are hashable (strings, not lists or other unhashable types)
+        if not isinstance(subject, str):
+            subject = str(subject) if subject else "unknown"
+        if not isinstance(predicate, str):
+            predicate = str(predicate) if predicate else "related_to"
+        if not isinstance(object_, str):
+            object_ = str(object_) if object_ else "unknown"
 
-        if doc_id:
-            for entity in [subject, object_]:
-                if entity not in self.entity_to_docs:
-                    self.entity_to_docs[entity] = set()
-                self.entity_to_docs[entity].add(doc_id)
+        # Skip empty or invalid triplets
+        if not subject or not predicate or not object_:
+            return
+
+        try:
+            self.graph.add_edge(subject, object_, relation=predicate, doc_id=doc_id)
+
+            if doc_id:
+                for entity in [subject, object_]:
+                    if entity not in self.entity_to_docs:
+                        self.entity_to_docs[entity] = set()
+                    self.entity_to_docs[entity].add(doc_id)
+        except TypeError as e:
+            print(f"[WARNING] Skipping invalid triplet: ({type(subject).__name__}, {type(predicate).__name__}, {type(object_).__name__})")
+            print(f"[WARNING] Values: ({subject}, {predicate}, {object_})")
+            print(f"[WARNING] Error: {e}")
 
     def get_neighbors(self, entity: str, depth: int = 1) -> Set[str]:
         """Get neighboring entities up to specified depth."""
@@ -153,13 +170,44 @@ JSON (only the array, no additional text):"""
             response = self.llm.invoke(prompt)
 
             content = response.content.strip()
+            print(f"[DEBUG] LLM response (first 200 chars): {content[:200]}")
+
             if content.startswith("```"):
                 content = content.split("```")[1]
                 if content.startswith("json"):
                     content = content[4:]
 
             triplets_raw = json.loads(content)
-            triplets = [(s, p, o) for s, p, o in triplets_raw]
+            print(f"[DEBUG] Parsed {len(triplets_raw)} raw triplets from LLM")
+
+            # Validate and sanitize triplets
+            triplets = []
+            for item in triplets_raw:
+                if not isinstance(item, (list, tuple)) or len(item) != 3:
+                    continue  # Skip malformed triplets
+
+                s, p, o = item
+
+                # Ensure all parts are strings (not lists or other types)
+                if isinstance(s, list):
+                    s = str(s) if s else "unknown"
+                elif not isinstance(s, str):
+                    s = str(s)
+
+                if isinstance(p, list):
+                    p = str(p) if p else "related_to"
+                elif not isinstance(p, str):
+                    p = str(p)
+
+                if isinstance(o, list):
+                    o = str(o) if o else "unknown"
+                elif not isinstance(o, str):
+                    o = str(o)
+
+                # Only add if all parts are non-empty strings
+                if s and p and o and isinstance(s, str) and isinstance(p, str) and isinstance(o, str):
+                    triplets.append((s.strip(), p.strip(), o.strip()))
+
             return triplets
         except Exception as e:
             print(f"LLM extraction error: {e}")
@@ -168,11 +216,14 @@ JSON (only the array, no additional text):"""
     def extract(self, text: str, use_llm: bool = True) -> List[Tuple[str, str, str]]:
         """Extract entities and relationships using both methods."""
         triplets = self.extract_with_spacy(text)
+        print(f"[DEBUG] spaCy extracted {len(triplets)} triplets")
 
         if use_llm:
             llm_triplets = self.extract_with_llm(text)
+            print(f"[DEBUG] LLM extracted {len(llm_triplets)} triplets")
             triplets.extend(llm_triplets)
 
+        print(f"[DEBUG] Total extracted {len(triplets)} triplets")
         return triplets
 
 
@@ -213,20 +264,43 @@ class GraphRAG:
         # Clean metadata - remove any lists or unhashable types
         for i, chunk in enumerate(chunks):
             clean_metadata = {}
+            if i == 0:  # Debug first chunk
+                print(f"[DEBUG] Original metadata keys: {chunk.metadata.keys()}")
+                print(f"[DEBUG] Original metadata: {chunk.metadata}")
+
             for key, value in chunk.metadata.items():
                 # Only keep simple hashable types
                 if isinstance(value, (str, int, float, bool)):
                     clean_metadata[key] = value
                 elif isinstance(value, list):
                     # Convert lists to strings
+                    if i == 0:
+                        print(f"[DEBUG] Converting list metadata '{key}': {value}")
+                    clean_metadata[key] = str(value)
+                elif isinstance(value, dict):
+                    # Convert dicts to strings
+                    if i == 0:
+                        print(f"[DEBUG] Converting dict metadata '{key}': {value}")
+                    clean_metadata[key] = str(value)
+                elif value is None:
+                    clean_metadata[key] = ""
+                else:
+                    # Convert any other types to string
+                    if i == 0:
+                        print(f"[DEBUG] Converting other type '{key}' ({type(value)}): {value}")
                     clean_metadata[key] = str(value)
             clean_metadata["chunk_id"] = f"doc_{i}"
             chunk.metadata = clean_metadata
 
+            if i == 0:  # Debug first chunk
+                print(f"[DEBUG] Cleaned metadata: {chunk.metadata}")
+
         # Add to vector store
         print("Adding documents to vector store...")
         try:
-            self.vector_store.add_documents(chunks)
+            # Generate explicit IDs for each chunk to avoid Chroma auto-generation issues
+            chunk_ids = [f"chunk_{i}" for i in range(len(chunks))]
+            self.vector_store.add_documents(chunks, ids=chunk_ids)
         except Exception as e:
             print(f"Vector store error: {e}")
             import traceback
@@ -234,9 +308,11 @@ class GraphRAG:
             # Fallback: add one by one
             for idx, chunk in enumerate(chunks):
                 try:
-                    self.vector_store.add_documents([chunk])
+                    self.vector_store.add_documents([chunk], ids=[f"chunk_{idx}"])
                 except Exception as e2:
                     print(f"Failed to add chunk {idx}: {e2}")
+                    print(f"Chunk metadata: {chunk.metadata}")
+                    print(f"Metadata types: {[(k, type(v)) for k, v in chunk.metadata.items()]}")
 
         print("Building knowledge graph...")
         for i, chunk in enumerate(chunks):
@@ -306,16 +382,39 @@ class GraphRAG:
 
         try:
             # Use both spaCy and LLM extraction for better entity detection
+            print(f"[DEBUG] Extracting entities from query...")
             query_entities = self.extractor.extract(query, use_llm=True)  # Set to True to enable LLM extraction
+            print(f"[DEBUG] Raw query entities: {query_entities}")
             query_entity_names = set([ent[0] for ent in query_entities])
-            print(f"[DEBUG] Extracted entities from query: {query_entity_names}")
+            print(f"[DEBUG] Extracted entity names from query: {query_entity_names}")
 
             graph_entities = set()
             for entity in query_entity_names:
                 neighbors = self.knowledge_graph.get_neighbors(entity, depth=2)
                 if neighbors:
                     print(f"[DEBUG] Entity '{entity}' has {len(neighbors)} neighbors in graph")
-                graph_entities.update(neighbors)
+                    graph_entities.update(neighbors)
+                else:
+                    print(f"[DEBUG] Entity '{entity}' not found in graph")
+
+            # If no entities found, try keyword-based matching as fallback
+            if len(query_entity_names) == 0:
+                print(f"[DEBUG] No entities extracted from query. Trying keyword-based fallback...")
+                # Extract important keywords from query
+                keywords = [word.lower().strip() for word in query.split()
+                           if len(word) > 3 and word.lower() not in {'what', 'how', 'when', 'where', 'which', 'who', 'are', 'the', 'for', 'and', 'with', 'about'}]
+                print(f"[DEBUG] Keywords extracted: {keywords}")
+
+                # Look for exact or partial matches in graph nodes
+                graph_nodes = list(self.knowledge_graph.graph.nodes())
+                for keyword in keywords:
+                    for node in graph_nodes:
+                        if keyword in node.lower():
+                            neighbors = self.knowledge_graph.get_neighbors(node, depth=2)
+                            if neighbors:
+                                print(f"[DEBUG] Keyword '{keyword}' matched node '{node}' with {len(neighbors)} neighbors")
+                                graph_entities.update(neighbors)
+                                break  # Found a match for this keyword
 
             print(f"[DEBUG] Total graph entities found: {len(graph_entities)}")
 
@@ -433,7 +532,7 @@ class DementiaChatbot:
                             # Only add to vector store, knowledge graph already loaded
                             chunks = self.graph_rag.text_splitter.split_documents(documents)
 
-                            # Clean metadata
+                            # Clean metadata - remove unhashable types
                             for i, chunk in enumerate(chunks):
                                 clean_metadata = {}
                                 for key, value in chunk.metadata.items():
@@ -441,11 +540,31 @@ class DementiaChatbot:
                                         clean_metadata[key] = value
                                     elif isinstance(value, list):
                                         clean_metadata[key] = str(value)
+                                    elif value is None:
+                                        clean_metadata[key] = ""
+                                    else:
+                                        # Convert any other types to string
+                                        clean_metadata[key] = str(value)
                                 clean_metadata["chunk_id"] = f"doc_{i}"
                                 chunk.metadata = clean_metadata
 
                             print(f"Adding {len(chunks)} chunks to vector store...")
-                            self.graph_rag.vector_store.add_documents(chunks)
+                            try:
+                                # Generate explicit IDs for each chunk
+                                chunk_ids = [f"chunk_{i}" for i in range(len(chunks))]
+                                self.graph_rag.vector_store.add_documents(chunks, ids=chunk_ids)
+                            except Exception as e:
+                                print(f"Error adding documents: {e}")
+                                import traceback
+                                traceback.print_exc()
+                                # Try adding one by one to identify problematic chunks
+                                for idx, chunk in enumerate(chunks):
+                                    try:
+                                        self.graph_rag.vector_store.add_documents([chunk], ids=[f"chunk_{idx}"])
+                                    except Exception as e2:
+                                        print(f"Failed to add chunk {idx}: {e2}")
+                                        print(f"Problematic metadata: {chunk.metadata}")
+                                        print(f"Metadata types: {[(k, type(v)) for k, v in chunk.metadata.items()]}")
                             print("✅ Vector store populated!")
 
                         self.is_loaded = True
@@ -495,7 +614,24 @@ class DementiaChatbot:
             return f"✅ Successfully loaded {len(documents)} pages from PDFs!\n\nKnowledge Graph Stats:\n- Entities: {len(self.graph_rag.knowledge_graph.graph.nodes())}\n- Relationships: {len(self.graph_rag.knowledge_graph.graph.edges())}\n\n💾 All data saved to: {self.persist_directory}\n⚡ Next time you run, everything will load instantly!"
 
         except Exception as e:
-            return f"❌ Error loading PDFs: {str(e)}"
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"[ERROR] Full traceback:\n{error_details}")
+
+            # If it's a hashable type error, suggest clearing the database
+            if "unhashable type" in str(e):
+                return f"""❌ Error loading PDFs: {str(e)}
+
+This error is likely caused by corrupted data in the existing Chroma database.
+
+SOLUTION: Delete the '{self.persist_directory}' folder and try again.
+
+This will force a fresh reload of all PDFs with the corrected metadata handling.
+
+Full error details:
+{error_details}"""
+
+            return f"❌ Error loading PDFs: {str(e)}\n\nFull error:\n{error_details}"
 
     def chat(self, message: str) -> str:
         """Send a message and get a response."""
@@ -600,10 +736,10 @@ OUTPUT FORMAT:
 
 First, provide a markdown analysis using this format for each item:
 
-**Item:** [Name the specific item only - e.g., "White door", "Beige sofa"]
+**Item:** [Name the specific item only - e.g., "Door", "Sofa", "Light switch"]
 **Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
 **Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give a DEFINITE, specific action - use "Change to...", "Replace with...", "Paint/Install..." format with HIGH CONTRAST colors to match guideline requirements]
+**Recommendation:** [Give ONE SPECIFIC REPLACEMENT action with EXACT color/material. Format: "Replace with a [specific color] [item]". Must include exact color names, not generic terms.]
 
 ---
 
