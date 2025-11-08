@@ -582,10 +582,10 @@ OUTPUT FORMAT:
 
 First, provide a markdown analysis using this format for each item:
 
-**Item:** [Name the specific item only - e.g., "White door", "Beige sofa"]
+**Item:** [Name the specific item only - e.g., "Door", "Sofa", "Light switch"]
 **Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
 **Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give ONE SPECIFIC action with EXACT color/material. Format: "Paint the [item] [specific color name like 'dark charcoal grey' or 'deep navy blue']" OR "Replace with a [specific color] [item]" OR "Install [specific colored item]". Must include exact color names, not generic terms.]
+**Recommendation:** [Give ONE SPECIFIC REPLACEMENT action with EXACT color/material that provides STRONG, MEANINGFUL contrast. Format: "Replace with a [specific color] [item]". IMPORTANT: The recommended color must create SIGNIFICANT visual difference - e.g., if something is dark brown on a light floor, recommend a LIGHT color like cream/white/beige, NOT another dark color like dark grey. The goal is maximum visibility.]
 
 ---
 
@@ -617,8 +617,13 @@ CRITICAL ELEMENTS TO ASSESS:
 ✓ Décor: Visual clutter, confusing patterns, mirrors
 ✓ Safety: Grab bars, clear pathways, hazards
 
-IMPORTANT:
+IMPORTANT CONTRAST GUIDELINES FOR RECOMMENDATIONS:
 - ONLY flag items that LACK sufficient contrast as problems (don't flag good contrast as a problem!)
+- Recommendations must provide MEANINGFUL contrast improvement:
+  * Dark items on light backgrounds → recommend LIGHT colors (white, cream, light grey, beige)
+  * Light items on dark backgrounds → recommend DARK colors (black, dark brown, navy, charcoal)
+  * Avoid recommending similar shades (e.g., don't recommend dark grey to replace dark brown)
+  * The recommended color should be on the OPPOSITE end of the light/dark spectrum
 - Reference specific guideline principles from the context above in your analysis
 - Be concrete about the exact colors/tones you see and why they lack contrast
 - Analyze what you SEE in the image, not generic advice
