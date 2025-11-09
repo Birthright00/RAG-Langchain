@@ -571,10 +571,11 @@ The guidelines above mention "contrast," "visual contrast," "colour contrast," a
    - Makes it hard for people with dementia to distinguish objects and boundaries
 
 INSTRUCTIONS:
-1. Look at EVERY visible element in the image
-2. Compare each element's color/tone with its background (wall, floor, etc.)
-3. Identify items that LACK sufficient contrast (similar colors that blend together)
-4. Output your findings in BOTH formats:
+1. DO NOT include any disclaimers about your capabilities or inability to analyze images - you can and will analyze this image
+2. Start immediately by looking at EVERY visible element in the image
+3. Compare each element's color/tone with its background (wall, floor, etc.)
+4. Identify items that LACK sufficient contrast (similar colors that blend together)
+5. Output your findings in BOTH formats:
    a) Human-readable markdown format
    b) JSON format
 
@@ -585,7 +586,7 @@ First, provide a markdown analysis using this format for each item:
 **Item:** [Name the specific item only - e.g., "Door", "Sofa", "Light switch"]
 **Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
 **Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give ONE SPECIFIC REPLACEMENT action with EXACT color/material that provides STRONG, MEANINGFUL contrast. Format: "Replace with a [specific color] [item]". IMPORTANT: The recommended color must create SIGNIFICANT visual difference - e.g., if something is dark brown on a light floor, recommend a LIGHT color like cream/white/beige, NOT another dark color like dark grey. The goal is maximum visibility.]
+**Recommendation:** [Give ONE SPECIFIC REPLACEMENT action with EXACT color/material that provides STRONG, MEANINGFUL contrast. Format: "Replace with a [specific color] [item]". You are the dementia design expert - make the decision and give ONE specific recommendation, not choices. IMPORTANT: The recommended color must create SIGNIFICANT visual difference - e.g., if something is dark brown on a light floor, recommend a LIGHT color like cream/white/beige, NOT another dark color like dark grey. The goal is maximum visibility.]
 
 ---
 
@@ -628,6 +629,8 @@ IMPORTANT CONTRAST GUIDELINES FOR RECOMMENDATIONS:
 - Be concrete about the exact colors/tones you see and why they lack contrast
 - Analyze what you SEE in the image, not generic advice
 - Provide BOTH the markdown analysis AND the JSON summary
+
+REMEMBER: Do not say you cannot analyze images or provide disclaimers. You will analyze this image directly and provide specific findings.
 
 Begin your analysis now:"""
 

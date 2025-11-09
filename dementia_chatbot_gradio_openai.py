@@ -800,10 +800,11 @@ COMPREHENSIVE ASSESSMENT AREAS:
    - Decor that supports orientation
 
 INSTRUCTIONS:
-1. First, briefly describe what you see in the image (room type, main features)
-2. Systematically assess ALL 8 areas above based on what's visible in the image
-3. For each issue found, provide specific details
-4. Output findings in BOTH markdown and JSON formats
+1. DO NOT include any disclaimers about your capabilities or inability to analyze images - you can and will analyze this image
+2. Start immediately with a brief description of what you see in the image (room type, main features)
+3. Systematically assess ALL 8 areas above based on what's visible in the image
+4. For each issue found, provide specific details
+5. Output findings in BOTH markdown and JSON formats
 
 OUTPUT FORMAT:
 
@@ -820,11 +821,11 @@ For each issue:
 **Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
 **Issue:** [Detailed description of the problem with this specific item - be specific about colors, materials observed in the image]
 **Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
-**Recommendation:** [Direct instruction with specific details. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Examples:
-  - "Replace the sofa with one upholstered in solid burgundy fabric (LRV 15-25)."
-  - "Repaint walls in warm cream color (LRV 70-75) with matte finish."
-  - "Install LED recessed lights providing 400-500 lux with 3000K color temperature."
-  NO explanations about why or how - just the specific instruction.]
+**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Examples:
+  - "Replace sofa with one upholstered in solid burgundy fabric (LRV 15-25)."
+  - "Repaint walls in warm cream (LRV 70-75) with matte finish."
+  - "Install LED recessed lights providing 450 lux at 3000K color temperature."
+  Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive.]
 **Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit, e.g., "This creates sufficient visual contrast making the sofa clearly visible, reducing fall risk and supporting independent movement as per dementia-friendly design principles."]
 
 ---
@@ -865,11 +866,15 @@ IMPORTANT GUIDELINES:
 - Consider ALL aspects of dementia-friendly design, not just contrast
 - Be specific about what you observe (e.g., "dark grey sofa on dark grey floor" not just "poor contrast")
 - **CRITICAL: Quote EXACT text from the REFERENCE GUIDELINES above for each issue** - don't paraphrase
-- **CRITICAL: Recommendations must be SPECIFIC and EVIDENCE-BASED:**
+- **CRITICAL: Recommendations must be SPECIFIC, AUTHORITATIVE, and EVIDENCE-BASED:**
+  * You are the dementia design expert - make definitive decisions
+  * Give ONE specific value, not ranges (e.g., "LRV 45" not "LRV 40-50")
+  * Give ONE specific color, not choices (e.g., "burgundy" not "burgundy or navy")
+  * Give ONE specific action, not suggestions (e.g., "Replace" not "Consider replacing")
   * Use specific color names, materials, product types from the guidelines
-  * Include technical specifications mentioned in guidelines (e.g., LRV values, lux levels, contrast ratios)
-  * Reference specific guideline recommendations (e.g., "the guidelines state that 'flooring should be matte finish to avoid glare'")
-  * Provide measurable changes (e.g., "increase to 300 lux" not "add more light")
+  * Include exact technical specifications (e.g., LRV values, lux levels, color temperatures)
+  * Provide measurable, actionable directives (e.g., "Install LED lights at 450 lux" not "add more light")
+  * NO explanatory text in the Recommendation field - save explanations for the Explanation field
 - Read through ALL the reference guidelines carefully and apply them to what you see
 - Include both positive observations and areas for improvement
 - If guidelines mention specific products, materials, or standards, use them in recommendations
@@ -882,33 +887,36 @@ EXAMPLES OF SPECIFIC RECOMMENDATIONS:
 
 **Example 1:**
 ❌ BAD (wrong item name): Item: "Lighting level"
-❌ BAD (has explanation): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
+❌ BAD (has explanation, gives range): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
 ✅ GOOD:
 **Item:** Ceiling light fixtures
-**Recommendation:** Install LED recessed downlights providing 400-500 lux with 3000K warm white color temperature.
+**Recommendation:** Install LED recessed downlights providing 450 lux at 3000K color temperature.
 
 **Example 2:**
 ❌ BAD (abstract concept): Item: "Door-wall contrast"
 ✅ GOOD:
 **Item:** Bedroom door
-**Recommendation:** Replace door with solid wood door painted in dark navy (LRV 20-30).
+**Recommendation:** Paint door in dark navy (LRV 25).
 
 **Example 3:**
 ❌ BAD (mentions color not item): Item: "Sofa color"
-❌ BAD (has explanations in recommendation): Recommendation: "Replace with a sofa upholstered in solid burgundy or navy fabric (LRV 15-25) to create strong contrast against the light grey floor (LRV 65), making the seating clearly visible"
+❌ BAD (gives choices, has explanations): Recommendation: "Replace with a sofa upholstered in solid burgundy or navy fabric (LRV 15-25) to create strong contrast against the light grey floor (LRV 65), making the seating clearly visible"
 ✅ GOOD (complete example with all fields):
 **Item:** Sofa
 **Category:** Contrast
 **Issue:** The grey sofa (LRV 45) has insufficient contrast against the grey floor (LRV 40), making it difficult to distinguish the seating area.
 **Guideline Reference:** "Furniture should contrast with flooring to ensure clear visibility and prevent falls."
-**Recommendation:** Replace sofa with one upholstered in solid burgundy fabric (LRV 15-25).
-**Explanation:** This creates a 25+ LRV point contrast difference against the floor, making the sofa clearly visible and reducing fall risk when sitting or standing, supporting safe independent movement.
+**Recommendation:** Replace sofa with one upholstered in solid burgundy fabric (LRV 18).
+**Explanation:** This creates a 22 LRV point contrast difference against the floor, making the sofa clearly visible and reducing fall risk when sitting or standing, supporting safe independent movement.
 
 **Example 4:**
 ❌ BAD (too vague): Recommendation: "Change the flooring"
+❌ BAD (gives range): Recommendation: "Replace floor tiles with matte-finish vinyl flooring in solid mid-tone beige (LRV 40-50) without patterns"
 ✅ GOOD:
 **Item:** Floor tiles
-**Recommendation:** Replace floor tiles with matte-finish vinyl flooring in solid mid-tone beige (LRV 40-50) without patterns.
+**Recommendation:** Replace floor tiles with matte-finish vinyl flooring in solid beige (LRV 45) without patterns.
+
+REMEMBER: Do not say you cannot analyze images or provide disclaimers. You will analyze this image directly and provide specific findings.
 
 Begin your comprehensive analysis now:"""
 
