@@ -816,15 +816,16 @@ OUTPUT FORMAT:
 
 For each issue:
 
-**Item:** [Specific element - e.g., "Living room flooring", "Ceiling light fixture", "Glass partition"]
+**Item:** [Name the PHYSICAL ITEM/ELEMENT only - e.g., "Sofa", "Floor tiles", "Ceiling light", "Glass partition door", "Wall paint", "Window blinds", "TV cabinet". DO NOT list abstract concepts like "sofa color" or "lighting level" - list the actual object]
 **Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
-**Issue:** [Detailed explanation of the problem observed - be specific about colors, materials, and why it's problematic for people with dementia]
+**Issue:** [Detailed description of the problem with this specific item - be specific about colors, materials observed in the image]
 **Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
-**Recommendation:** [Evidence-based solution referencing the guidelines. Must include:
-  - WHAT to change (specific item)
-  - SPECIFIC materials/colors/products to use (e.g., "matte non-slip vinyl in light beige with LRV 60-70" NOT just "lighter flooring")
-  - WHY this helps (reference the guideline principle)
-  - HOW it addresses the issue (e.g., "provides 30-point contrast difference making edges clearly visible")]
+**Recommendation:** [Direct instruction with specific details. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Examples:
+  - "Replace the sofa with one upholstered in solid burgundy fabric (LRV 15-25)."
+  - "Repaint walls in warm cream color (LRV 70-75) with matte finish."
+  - "Install LED recessed lights providing 400-500 lux with 3000K color temperature."
+  NO explanations about why or how - just the specific instruction.]
+**Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit, e.g., "This creates sufficient visual contrast making the sofa clearly visible, reducing fall risk and supporting independent movement as per dementia-friendly design principles."]
 
 ---
 
@@ -848,11 +849,12 @@ For each issue:
   }},
   "issues": [
     {{
-      "item": "Specific element",
+      "item": "Physical item name only (e.g., 'Sofa', 'Floor tiles', 'Door')",
       "category": "Category name",
-      "issue": "Description of the issue",
-      "guideline_reference": "Referenced guideline",
-      "recommendation": "Specific recommendation"
+      "issue": "Description of the issue with this item",
+      "guideline_reference": "Exact quote from reference guidelines",
+      "recommendation": "Direct instruction only (e.g., 'Replace sofa with one upholstered in burgundy fabric (LRV 15-25).')",
+      "explanation": "Why this change benefits people with dementia (e.g., 'Creates visual contrast for fall prevention and supports independent movement.')"
     }}
   ]
 }}
@@ -872,15 +874,41 @@ IMPORTANT GUIDELINES:
 - Include both positive observations and areas for improvement
 - If guidelines mention specific products, materials, or standards, use them in recommendations
 
+CRITICAL RULES FOR ITEM NAMING:
+✅ CORRECT: "Sofa", "Floor tiles", "Walls", "Door", "Light fixture", "Window blinds", "TV stand", "Glass partition"
+❌ WRONG: "Sofa color", "Flooring color", "Wall color", "Lighting level", "Contrast between sofa and floor"
+
 EXAMPLES OF SPECIFIC RECOMMENDATIONS:
-❌ BAD (too vague): "Add more lighting"
-✅ GOOD (specific): "Install LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
 
-❌ BAD (too vague): "Use contrasting colors"
-✅ GOOD (specific): "Replace door with one in a dark color (LRV 20-30) against the white wall (LRV 85) to achieve the recommended 30+ point contrast difference for easy identification"
+**Example 1:**
+❌ BAD (wrong item name): Item: "Lighting level"
+❌ BAD (has explanation): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
+✅ GOOD:
+**Item:** Ceiling light fixtures
+**Recommendation:** Install LED recessed downlights providing 400-500 lux with 3000K warm white color temperature.
 
-❌ BAD (too vague): "Change the flooring"
-✅ GOOD (specific): "Replace with matte-finish vinyl flooring in a solid mid-tone color (LRV 40-50) without patterns, as guidelines specify that patterned floors can cause confusion and appear as obstacles"
+**Example 2:**
+❌ BAD (abstract concept): Item: "Door-wall contrast"
+✅ GOOD:
+**Item:** Bedroom door
+**Recommendation:** Replace door with solid wood door painted in dark navy (LRV 20-30).
+
+**Example 3:**
+❌ BAD (mentions color not item): Item: "Sofa color"
+❌ BAD (has explanations in recommendation): Recommendation: "Replace with a sofa upholstered in solid burgundy or navy fabric (LRV 15-25) to create strong contrast against the light grey floor (LRV 65), making the seating clearly visible"
+✅ GOOD (complete example with all fields):
+**Item:** Sofa
+**Category:** Contrast
+**Issue:** The grey sofa (LRV 45) has insufficient contrast against the grey floor (LRV 40), making it difficult to distinguish the seating area.
+**Guideline Reference:** "Furniture should contrast with flooring to ensure clear visibility and prevent falls."
+**Recommendation:** Replace sofa with one upholstered in solid burgundy fabric (LRV 15-25).
+**Explanation:** This creates a 25+ LRV point contrast difference against the floor, making the sofa clearly visible and reducing fall risk when sitting or standing, supporting safe independent movement.
+
+**Example 4:**
+❌ BAD (too vague): Recommendation: "Change the flooring"
+✅ GOOD:
+**Item:** Floor tiles
+**Recommendation:** Replace floor tiles with matte-finish vinyl flooring in solid mid-tone beige (LRV 40-50) without patterns.
 
 Begin your comprehensive analysis now:"""
 
