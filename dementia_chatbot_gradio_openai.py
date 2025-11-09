@@ -717,11 +717,27 @@ Full error details:
 
             # Get relevant guidelines from the knowledge base
             print("Retrieving dementia guidelines from knowledge base...")
-            guidelines_query = "What are the key design principles, lighting, color schemes, flooring, furniture, and safety features for dementia-friendly spaces?"
-            guidelines_result = self.graph_rag.retrieve(guidelines_query, k=6, use_graph=True)
+            guidelines_queries = [
+                "What are the key design principles, lighting, color schemes, flooring, furniture, and safety features for dementia-friendly spaces?",
+                "What are specific color recommendations and contrast requirements for dementia care?",
+                "What are safety features and accessibility requirements for dementia-friendly homes?"
+            ]
 
-            guidelines_context = "\n\n".join([doc.page_content for doc in guidelines_result])
-            print(f"Retrieved {len(guidelines_result)} guideline documents")
+            all_guidelines = []
+            for query in guidelines_queries:
+                results = self.graph_rag.retrieve(query, k=4, use_graph=True)
+                all_guidelines.extend(results)
+
+            # Deduplicate based on content
+            seen_content = set()
+            unique_guidelines = []
+            for doc in all_guidelines:
+                if doc.page_content not in seen_content:
+                    seen_content.add(doc.page_content)
+                    unique_guidelines.append(doc)
+
+            guidelines_context = "\n\n".join([doc.page_content for doc in unique_guidelines])
+            print(f"Retrieved {len(unique_guidelines)} unique guideline documents")
 
             # Create prompt for vision model
             prompt_text = f"""TASK: Analyze the provided image of a home interior space comprehensively for dementia-friendly design compliance.
@@ -802,9 +818,13 @@ For each issue:
 
 **Item:** [Specific element - e.g., "Living room flooring", "Ceiling light fixture", "Glass partition"]
 **Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
-**Issue:** [Detailed explanation of the problem observed in the image]
-**Guideline Reference:** [Specific principle from the reference guidelines above]
-**Recommendation:** [Concrete, actionable solution with specific details]
+**Issue:** [Detailed explanation of the problem observed - be specific about colors, materials, and why it's problematic for people with dementia]
+**Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
+**Recommendation:** [Evidence-based solution referencing the guidelines. Must include:
+  - WHAT to change (specific item)
+  - SPECIFIC materials/colors/products to use (e.g., "matte non-slip vinyl in light beige with LRV 60-70" NOT just "lighter flooring")
+  - WHY this helps (reference the guideline principle)
+  - HOW it addresses the issue (e.g., "provides 30-point contrast difference making edges clearly visible")]
 
 ---
 
@@ -842,10 +862,25 @@ IMPORTANT GUIDELINES:
 - Analyze the ACTUAL image provided - describe specific colors, materials, and features you see
 - Consider ALL aspects of dementia-friendly design, not just contrast
 - Be specific about what you observe (e.g., "dark grey sofa on dark grey floor" not just "poor contrast")
-- Reference the knowledge base guidelines in your assessment
-- Provide actionable, practical recommendations
+- **CRITICAL: Quote EXACT text from the REFERENCE GUIDELINES above for each issue** - don't paraphrase
+- **CRITICAL: Recommendations must be SPECIFIC and EVIDENCE-BASED:**
+  * Use specific color names, materials, product types from the guidelines
+  * Include technical specifications mentioned in guidelines (e.g., LRV values, lux levels, contrast ratios)
+  * Reference specific guideline recommendations (e.g., "the guidelines state that 'flooring should be matte finish to avoid glare'")
+  * Provide measurable changes (e.g., "increase to 300 lux" not "add more light")
+- Read through ALL the reference guidelines carefully and apply them to what you see
 - Include both positive observations and areas for improvement
-- Ensure recommendations align with evidence-based dementia care principles
+- If guidelines mention specific products, materials, or standards, use them in recommendations
+
+EXAMPLES OF SPECIFIC RECOMMENDATIONS:
+❌ BAD (too vague): "Add more lighting"
+✅ GOOD (specific): "Install LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
+
+❌ BAD (too vague): "Use contrasting colors"
+✅ GOOD (specific): "Replace door with one in a dark color (LRV 20-30) against the white wall (LRV 85) to achieve the recommended 30+ point contrast difference for easy identification"
+
+❌ BAD (too vague): "Change the flooring"
+✅ GOOD (specific): "Replace with matte-finish vinyl flooring in a solid mid-tone color (LRV 40-50) without patterns, as guidelines specify that patterned floors can cause confusion and appear as obstacles"
 
 Begin your comprehensive analysis now:"""
 
