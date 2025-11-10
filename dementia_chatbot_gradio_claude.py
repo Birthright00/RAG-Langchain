@@ -547,92 +547,208 @@ class DementiaChatbot:
 
             # Get relevant guidelines from the knowledge base
             print("Retrieving dementia guidelines from knowledge base...")
-            guidelines_query = "What are the key design principles, lighting, color schemes, flooring, furniture, and safety features for dementia-friendly spaces?"
-            guidelines_result = self.graph_rag.retrieve(guidelines_query, k=6, use_graph=True)
+            guidelines_queries = [
+                "What are the key design principles, lighting, color schemes, flooring, furniture, and safety features for dementia-friendly spaces?",
+                "What are specific color recommendations and contrast requirements for dementia care?",
+                "What are safety features and accessibility requirements for dementia-friendly homes?"
+            ]
 
-            guidelines_context = "\n\n".join([doc.page_content for doc in guidelines_result])
-            print(f"Retrieved {len(guidelines_result)} guideline documents")
+            all_guidelines = []
+            for query in guidelines_queries:
+                results = self.graph_rag.retrieve(query, k=4, use_graph=True)
+                all_guidelines.extend(results)
+
+            # Deduplicate based on content
+            seen_content = set()
+            unique_guidelines = []
+            for doc in all_guidelines:
+                if doc.page_content not in seen_content:
+                    seen_content.add(doc.page_content)
+                    unique_guidelines.append(doc)
+
+            guidelines_context = "\n\n".join([doc.page_content for doc in unique_guidelines])
+            print(f"Retrieved {len(unique_guidelines)} unique guideline documents")
 
             # Create prompt for vision model
-            prompt_text = f"""You are an expert occupational therapist specializing in dementia-friendly home design. Carefully analyze this image of a home space and identify specific issues based on evidence-based dementia care guidelines.
+            prompt_text = f"""TASK: Analyze the provided image of a home interior space comprehensively for dementia-friendly design compliance.
 
-REFERENCE GUIDELINES:
+You are an expert occupational therapist specializing in dementia care environments. You MUST examine the actual image provided and give specific, actionable feedback about what you observe.
+
+REFERENCE GUIDELINES FROM KNOWLEDGE BASE:
 {guidelines_context}
 
-HOW TO INTERPRET CONTRAST REQUIREMENTS FROM THE GUIDELINES:
-The guidelines above mention "contrast," "visual contrast," "colour contrast," and "tonal contrast" - these all refer to the SAME principle:
+COMPREHENSIVE ASSESSMENT AREAS:
 
-✓ GOOD CONTRAST (desired) = Different/distinct colors or tones that make objects easily distinguishable
-   - Examples: Dark door against light wall, contrasting handrails, distinct furniture colors
-   - The guidelines say to "provide good visual contrast," "use contrasting colours," "ensure contrast"
+1. **CONTRAST & VISUAL CLARITY**
+   - Color contrast between walls, floors, doors, furniture, fixtures
+   - Ability to distinguish boundaries and key elements
+   - Visual cues for navigation and safety
 
-✗ POOR/INSUFFICIENT CONTRAST (problem) = Similar colors or tones that blend together
-   - Examples: White door on white wall, beige furniture on beige floor, light fixtures on light walls
-   - Makes it hard for people with dementia to distinguish objects and boundaries
+2. **LIGHTING**
+   - Natural light sources and quality
+   - Artificial lighting (type, placement, adequacy)
+   - Glare from reflective surfaces or windows
+   - Shadows that could cause confusion
+   - Even lighting distribution
+
+3. **FLOORING & SURFACES**
+   - Patterns that might be confusing or disorienting
+   - Reflective surfaces that could appear wet
+   - Color changes that might look like steps
+   - Slip resistance and trip hazards
+   - Transitions between different floor types
+
+4. **WAYFINDING & ORIENTATION**
+   - Clear pathways and circulation
+   - Visual landmarks and signage
+   - Ability to identify room purpose
+   - Memory cues and familiar elements
+
+5. **SAFETY FEATURES**
+   - Grab bars and handrails (presence, contrast, accessibility)
+   - Sharp corners or hazardous edges
+   - Clutter or obstacles in pathways
+   - Secure furniture that won't tip
+   - Window and door safety
+
+6. **COLOR SCHEME**
+   - Calming vs. stimulating colors
+   - Appropriate color choices per guidelines
+   - Avoidance of problematic colors (dark floors, busy patterns)
+   - Use of color for wayfinding
+
+7. **SPATIAL DESIGN**
+   - Room layout and furniture arrangement
+   - Clear sightlines and open spaces
+   - Accessibility and ease of movement
+   - Reduction of visual clutter
+
+8. **ENVIRONMENTAL CUES**
+   - Mirrors that could cause confusion
+   - Reflective or glass surfaces
+   - Patterns that create visual disturbance
+   - Decor that supports orientation
 
 INSTRUCTIONS:
 1. DO NOT include any disclaimers about your capabilities or inability to analyze images - you can and will analyze this image
-2. Start immediately by looking at EVERY visible element in the image
-3. Compare each element's color/tone with its background (wall, floor, etc.)
-4. Identify items that LACK sufficient contrast (similar colors that blend together)
-5. Output your findings in BOTH formats:
-   a) Human-readable markdown format
-   b) JSON format
+2. Start immediately with a brief description of what you see in the image (room type, main features)
+3. Systematically assess ALL 8 areas above based on what's visible in the image
+4. For each issue found, provide specific details
+5. Output findings in BOTH markdown and JSON formats
 
 OUTPUT FORMAT:
 
-First, provide a markdown analysis using this format for each item:
-
-**Item:** [Name the specific item only - e.g., "Door", "Sofa", "Light switch"]
-**Issue:** [Explain why this LACKS sufficient contrast according to the guidelines - mention the specific similar colors]
-**Guideline Reference:** [Quote or paraphrase the relevant principle from the guidelines above]
-**Recommendation:** [Give ONE SPECIFIC REPLACEMENT action with EXACT color/material that provides STRONG, MEANINGFUL contrast. Format: "Replace with a [specific color] [item]". You are the dementia design expert - make the decision and give ONE specific recommendation, not choices. IMPORTANT: The recommended color must create SIGNIFICANT visual difference - e.g., if something is dark brown on a light floor, recommend a LIGHT color like cream/white/beige, NOT another dark color like dark grey. The goal is maximum visibility.]
+**ROOM DESCRIPTION:**
+[Brief description of what you see - room type, main elements, overall impression]
 
 ---
 
-Then, after all items, provide a JSON summary:
+**ISSUES IDENTIFIED:**
+
+For each issue:
+
+**Item:** [Name the PHYSICAL ITEM/ELEMENT only - e.g., "Sofa", "Floor tiles", "Ceiling light", "Glass partition door", "Wall paint", "Window blinds", "TV cabinet". DO NOT list abstract concepts like "sofa color" or "lighting level" - list the actual object]
+**Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
+**Issue:** [Detailed description of the problem with this specific item - be specific about colors, materials observed in the image]
+**Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
+**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Examples:
+  - "Replace sofa with one upholstered in solid burgundy fabric (LRV 18)."
+  - "Repaint walls in warm cream (LRV 72) with matte finish."
+  - "Install LED recessed lights providing 450 lux at 3000K color temperature."
+  Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive.]
+**Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit, e.g., "This creates sufficient visual contrast making the sofa clearly visible, reducing fall risk and supporting independent movement as per dementia-friendly design principles."]
+
+---
+
+**JSON SUMMARY:**
 
 ```json
 {{
+  "room_type": "description",
   "analysis_summary": {{
-    "total_issues": <number>
+    "total_issues": <number>,
+    "by_category": {{
+      "contrast": <number>,
+      "lighting": <number>,
+      "flooring": <number>,
+      "wayfinding": <number>,
+      "safety": <number>,
+      "color": <number>,
+      "spatial_design": <number>,
+      "environmental_cues": <number>
+    }}
   }},
   "issues": [
     {{
-      "item": "Item name",
-      "issue": "Description of the issue",
-      "guideline_reference": "Referenced guideline",
-      "recommendation": "Specific recommendation"
+      "item": "Physical item name only (e.g., 'Sofa', 'Floor tiles', 'Door')",
+      "category": "Category name",
+      "issue": "Description of the issue with this item",
+      "guideline_reference": "Exact quote from reference guidelines",
+      "recommendation": "Direct instruction only (e.g., 'Replace sofa with one upholstered in burgundy fabric (LRV 18).')",
+      "explanation": "Why this change benefits people with dementia (e.g., 'Creates visual contrast for fall prevention and supports independent movement.')"
     }}
   ]
 }}
 ```
 
-CRITICAL ELEMENTS TO ASSESS:
-✓ Doors & Frames: Do they have GOOD CONTRAST against walls? (Similar colors = problem)
-✓ Furniture: Does it have GOOD CONTRAST against walls/floors? (Similar tones = problem)
-✓ Fixtures: Do switches, outlets, handles have GOOD CONTRAST? (Blending in = problem)
-✓ Floor-to-Wall transitions: Is there CLEAR CONTRAST between floor and skirting/wall? (Similar = problem)
-✓ Lighting: Type, brightness, glare, shadows, natural light
-✓ Flooring: Pattern, color, material, reflectivity, trip hazards
-✓ Décor: Visual clutter, confusing patterns, mirrors
-✓ Safety: Grab bars, clear pathways, hazards
+IMPORTANT GUIDELINES:
+- Analyze the ACTUAL image provided - describe specific colors, materials, and features you see
+- Consider ALL aspects of dementia-friendly design, not just contrast
+- Be specific about what you observe (e.g., "dark grey sofa on dark grey floor" not just "poor contrast")
+- **CRITICAL: Quote EXACT text from the REFERENCE GUIDELINES above for each issue** - don't paraphrase
+- **CRITICAL: Recommendations must be SPECIFIC, AUTHORITATIVE, and EVIDENCE-BASED:**
+  * You are the dementia design expert - make definitive decisions
+  * Give ONE specific value, not ranges (e.g., "LRV 45" not "LRV 40-50")
+  * Give ONE specific color, not choices (e.g., "burgundy" not "burgundy or navy")
+  * Give ONE specific action, not suggestions (e.g., "Replace" not "Consider replacing")
+  * Use specific color names, materials, product types from the guidelines
+  * Include exact technical specifications (e.g., LRV values, lux levels, color temperatures)
+  * Provide measurable, actionable directives (e.g., "Install LED lights at 450 lux" not "add more light")
+  * NO explanatory text in the Recommendation field - save explanations for the Explanation field
+- Read through ALL the reference guidelines carefully and apply them to what you see
+- Include both positive observations and areas for improvement
+- If guidelines mention specific products, materials, or standards, use them in recommendations
 
-IMPORTANT CONTRAST GUIDELINES FOR RECOMMENDATIONS:
-- ONLY flag items that LACK sufficient contrast as problems (don't flag good contrast as a problem!)
-- Recommendations must provide MEANINGFUL contrast improvement:
-  * Dark items on light backgrounds → recommend LIGHT colors (white, cream, light grey, beige)
-  * Light items on dark backgrounds → recommend DARK colors (black, dark brown, navy, charcoal)
-  * Avoid recommending similar shades (e.g., don't recommend dark grey to replace dark brown)
-  * The recommended color should be on the OPPOSITE end of the light/dark spectrum
-- Reference specific guideline principles from the context above in your analysis
-- Be concrete about the exact colors/tones you see and why they lack contrast
-- Analyze what you SEE in the image, not generic advice
-- Provide BOTH the markdown analysis AND the JSON summary
+CRITICAL RULES FOR ITEM NAMING:
+✅ CORRECT: "Sofa", "Floor tiles", "Walls", "Door", "Light fixture", "Window blinds", "TV stand", "Glass partition"
+❌ WRONG: "Sofa color", "Flooring color", "Wall color", "Lighting level", "Contrast between sofa and floor"
+
+EXAMPLES OF SPECIFIC RECOMMENDATIONS:
+
+**Example 1:**
+❌ BAD (wrong item name): Item: "Lighting level"
+❌ BAD (has explanation, gives range): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
+✅ GOOD:
+**Item:** Ceiling light fixtures
+**Recommendation:** Install LED recessed downlights providing 450 lux at 3000K color temperature.
+
+**Example 2:**
+❌ BAD (abstract concept): Item: "Door-wall contrast"
+✅ GOOD:
+**Item:** Bedroom door
+**Recommendation:** Paint door in dark navy (LRV 25).
+
+**Example 3:**
+❌ BAD (mentions color not item): Item: "Sofa color"
+❌ BAD (gives choices, has explanations): Recommendation: "Replace with a sofa upholstered in solid burgundy or navy fabric (LRV 15-25) to create strong contrast against the light grey floor (LRV 65), making the seating clearly visible"
+✅ GOOD (complete example with all fields):
+**Item:** Sofa
+**Category:** Contrast
+**Issue:** The grey sofa (LRV 45) has insufficient contrast against the grey floor (LRV 40), making it difficult to distinguish the seating area.
+**Guideline Reference:** "Furniture should contrast with flooring to ensure clear visibility and prevent falls."
+**Recommendation:** Replace sofa with one upholstered in solid burgundy fabric (LRV 18).
+**Explanation:** This creates a 22 LRV point contrast difference against the floor, making the sofa clearly visible and reducing fall risk when sitting or standing, supporting safe independent movement.
+
+**Example 4:**
+❌ BAD (too vague): Recommendation: "Change the flooring"
+❌ BAD (gives range): Recommendation: "Replace floor tiles with matte-finish vinyl flooring in solid mid-tone beige (LRV 40-50) without patterns"
+✅ GOOD:
+**Item:** Floor tiles
+**Recommendation:** Replace floor tiles with matte-finish vinyl flooring in solid beige (LRV 45) without patterns.
 
 REMEMBER: Do not say you cannot analyze images or provide disclaimers. You will analyze this image directly and provide specific findings.
 
-Begin your analysis now:"""
+Begin your comprehensive analysis now:"""
 
             # Create message with image
             message = HumanMessage(
