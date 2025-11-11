@@ -331,10 +331,10 @@ class GraphRAG:
             documents: List of LangChain Document objects
             use_llm_extraction: Use LLM for entity extraction (slower but better)
         """
-        print(f"\n📄 Processing {len(documents)} documents...")
+        print(f"Processing {len(documents)} documents...")
 
         # Create vector store with embeddings
-        print("🔢 Creating embeddings and vector store...")
+        print("Creating embeddings and vector store...")
         self.vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
@@ -342,7 +342,7 @@ class GraphRAG:
         )
 
         # Build knowledge graph from documents
-        print("🕸️  Building knowledge graph...")
+        print("Building knowledge graph...")
         for i, doc in enumerate(documents):
             # Extract entities and relationships
             triplets = self.extractor.extract(doc.page_content, use_llm=use_llm_extraction)
@@ -358,7 +358,7 @@ class GraphRAG:
         # Count entities and relationships
         num_entities = self.knowledge_graph.graph.number_of_nodes()
         num_relations = self.knowledge_graph.graph.number_of_edges()
-        print(f"\n✅ Knowledge graph built:")
+        print(f"Knowledge graph built:")
         print(f"   - {num_entities:,} entities")
         print(f"   - {num_relations:,} relationships")
 
@@ -379,7 +379,7 @@ class GraphRAG:
                 'graph': self.knowledge_graph.graph,
                 'entity_docs': self.knowledge_graph.entity_docs
             }, f)
-        print(f"💾 Knowledge graph saved to {filepath}")
+        print(f"Knowledge graph saved to {filepath}")
 
     def load_graph_data(self, filepath: str = None) -> bool:
         """
@@ -406,13 +406,13 @@ class GraphRAG:
 
             num_entities = self.knowledge_graph.graph.number_of_nodes()
             num_relations = self.knowledge_graph.graph.number_of_edges()
-            print(f"✅ Knowledge graph loaded:")
+            print(f"Knowledge graph loaded:")
             print(f"   - {num_entities:,} entities")
             print(f"   - {num_relations:,} relationships")
 
             return True
         except Exception as e:
-            print(f"❌ Error loading graph: {e}")
+            print(f"Error loading graph: {e}")
             return False
 
     def retrieve(self, query: str, k: int = 4, use_graph: bool = True) -> List[Document]:
@@ -539,7 +539,7 @@ class DementiaImageAnalysisPipeline:
         self.persist_dir = persist_dir
 
         # Initialize OpenAI models
-        print("\n🤖 Initializing AI models...")
+        print("Initializing AI models...")
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         self.vision_model = ChatOpenAI(model="gpt-4o", temperature=0)
@@ -551,7 +551,7 @@ class DementiaImageAnalysisPipeline:
             persist_directory=persist_dir
         )
 
-        print("✅ Models initialized")
+        print("Models initialized")
 
     def load_guidelines(self, use_llm_extraction: bool = False, force_reload: bool = False):
         """
@@ -575,7 +575,7 @@ class DementiaImageAnalysisPipeline:
         cache_exists = os.path.exists(self.persist_dir) and os.path.exists(graph_path)
 
         if cache_exists and not force_reload:
-            print("\n📦 Loading from cache...")
+            print("Loading from cache...")
 
             # Load vector store
             try:
@@ -584,21 +584,21 @@ class DementiaImageAnalysisPipeline:
                     embedding_function=self.embeddings
                 )
                 num_embeddings = self.rag.vectorstore._collection.count()
-                print(f"✅ Vector store loaded: {num_embeddings:,} embeddings")
+                print(f"Vector store loaded: {num_embeddings:,} embeddings")
             except Exception as e:
-                print(f"❌ Error loading vector store: {e}")
+                print(f"Error loading vector store: {e}")
                 force_reload = True
 
             # Load knowledge graph
             if self.rag.load_graph_data(graph_path):
                 self.rag.documents_loaded = True
-                print("\n✅ Guidelines loaded successfully from cache!")
+                print("Guidelines loaded successfully from cache!")
                 return
             else:
                 force_reload = True
 
         # Need to process PDFs
-        print(f"\n📂 Processing PDFs from: {self.pdf_folder}")
+        print(f"Processing PDFs from: {self.pdf_folder}")
 
         if not os.path.exists(self.pdf_folder):
             raise FileNotFoundError(f"PDF folder not found: {self.pdf_folder}")
@@ -611,10 +611,10 @@ class DementiaImageAnalysisPipeline:
         if not all_documents:
             raise FileNotFoundError(f"No PDF files found or loaded from {self.pdf_folder}")
 
-        print(f"📄 Loaded {len(all_documents)} pages from PDFs")
+        print(f"Loaded {len(all_documents)} pages from PDFs")
 
         # Split into chunks
-        print("✂️  Splitting into chunks...")
+        print("Splitting into chunks...")
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
@@ -639,7 +639,7 @@ class DementiaImageAnalysisPipeline:
         self.rag.add_documents(splits, use_llm_extraction=use_llm_extraction)
 
         # Save to cache
-        print("\n💾 Saving to cache...")
+        print("Saving to cache...")
         self.rag.save_graph_data(graph_path)
 
         print("\n✅ Guidelines loaded and cached successfully!")
@@ -670,7 +670,7 @@ class DementiaImageAnalysisPipeline:
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        print(f"\n📷 Loading image: {image_path}")
+        print(f"Loading image: {image_path}")
 
         # Load and validate image
         try:
@@ -703,7 +703,7 @@ class DementiaImageAnalysisPipeline:
         print(f"   Encoded image: {len(image_data)} bytes")
 
         # Step 1: Retrieve relevant guidelines from RAG
-        print("\n📚 Retrieving dementia guidelines from knowledge base...")
+        print("Retrieving dementia guidelines from knowledge base...")
 
         guidelines_queries = [
             "What are the key design principles, lighting, color schemes, flooring, furniture, and safety features for dementia-friendly spaces?",
@@ -728,7 +728,7 @@ class DementiaImageAnalysisPipeline:
         print(f"   Retrieved {len(unique_guidelines)} unique guideline documents")
 
         # Step 2: Create comprehensive prompt with guidelines embedded
-        print("\n🔍 Analyzing image with Vision Language Model...")
+        print("Analyzing image with Vision Language Model...")
 
         prompt_text = f"""TASK: Analyze the provided image of a home interior space comprehensively for dementia-friendly design compliance.
 
@@ -906,7 +906,7 @@ Begin your analysis now."""
 
             print("   Sending request to GPT-4o vision model...")
             response = self.vision_model.invoke([message])
-            print("   ✅ Received response from vision model")
+            print("Received response from vision model")
 
             return response.content
 
@@ -1022,7 +1022,7 @@ Examples:
         # Always save to file (auto-generated or user-specified)
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(analysis)
-        print(f"✅ Analysis saved to: {args.output}\n")
+        print(f"Analysis saved to: {args.output}\n")
 
         # Also print to console
         print(analysis)
@@ -1032,7 +1032,7 @@ Examples:
         print("="*70 + "\n")
 
     except Exception as e:
-        print(f"\n❌ ERROR: {e}", file=sys.stderr)
+        print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
 
