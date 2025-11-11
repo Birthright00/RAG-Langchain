@@ -1,0 +1,186 @@
+"""
+RAG-Langchain Microservice API
+==============================
+FastAPI server that wraps dementia_pipeline.py for microservice architecture.
+"""
+
+import os
+import sys
+from pathlib import Path
+from typing import Optional, Dict, Any
+import json
+import re
+from datetime import datetime
+
+from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+import uvicorn
+
+# Load shared environment variables
+from dotenv import load_dotenv
+parent_dir = Path(__file__).parent.parent
+env_path = parent_dir / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+
+# Import the dementia pipeline
+from dementia_pipeline import DementiaImageAnalysisPipeline
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="RAG-Langchain Service",
+    description="Dementia home safety image analysis using RAG + Vision LLM",
+    version="1.0.0"
+)
+
+# Global pipeline instance
+pipeline: Optional[DementiaImageAnalysisPipeline] = None
+
+
+class AnalysisResponse(BaseModel):
+    """Response model for analysis results"""
+    success: bool
+    analysis_text: Optional[str] = None
+    analysis_json: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class HealthResponse(BaseModel):
+    """Health check response"""
+    status: str
+    service: str
+    version: str
+
+
+def extract_json_from_analysis(analysis_text: str) -> Optional[Dict]:
+    """Extract JSON summary from analysis text"""
+    try:
+        # Find JSON block in markdown code fence
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', analysis_text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1))
+    except Exception as e:
+        print(f"Error extracting JSON: {e}")
+    return None
+
+
+def get_pipeline():
+    """Lazy-load pipeline on first use"""
+    global pipeline
+    if pipeline is None:
+        print("Initializing RAG-Langchain pipeline (first request)...")
+        pipeline = DementiaImageAnalysisPipeline(
+            pdf_folder="./Dementia Guidelines",
+            persist_dir="./chroma_db"
+        )
+        # Load guidelines (will use cache if available)
+        pipeline.load_guidelines(use_llm_extraction=False, force_reload=False)
+        print("RAG-Langchain pipeline ready!")
+    return pipeline
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Service startup - quick initialization"""
+    print("RAG-Langchain service starting...")
+    print("Note: Pipeline will be initialized on first request")
+    print("RAG-Langchain service ready!")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    pass
+
+
+@app.get("/", response_model=HealthResponse)
+async def root():
+    """Root endpoint - service info"""
+    return {
+        "status": "running",
+        "service": "RAG-Langchain",
+        "version": "1.0.0"
+    }
+
+
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Health check endpoint"""
+    # Service is healthy as long as it's running
+    # Pipeline loads lazily on first request
+    return {
+        "status": "healthy",
+        "service": "RAG-Langchain",
+        "version": "1.0.0"
+    }
+
+
+@app.post("/analyze", response_model=AnalysisResponse)
+async def analyze_image(file: UploadFile = File(...)):
+    """
+    Analyze an uploaded image for dementia safety issues.
+
+    Args:
+        file: Image file (JPEG, PNG, etc.)
+
+    Returns:
+        Analysis results with both text and JSON
+    """
+    temp_path = None
+    try:
+        # Lazy-load pipeline on first request
+        current_pipeline = get_pipeline()
+
+        # Save uploaded file temporarily
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+        temp_path = Path(f"/tmp/analysis_{timestamp}_{file.filename}")
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(temp_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+
+        # Run analysis
+        print(f"Analyzing image: {temp_path}")
+        analysis_text = current_pipeline.analyze_image(str(temp_path))
+
+        # Extract JSON from analysis
+        analysis_json = extract_json_from_analysis(analysis_text)
+
+        return {
+            "success": True,
+            "analysis_text": analysis_text,
+            "analysis_json": analysis_json
+        }
+
+    except Exception as e:
+        import traceback
+        error_detail = f"{str(e)}\n{traceback.format_exc()}"
+        return {
+            "success": False,
+            "error": error_detail
+        }
+
+    finally:
+        # Clean up temp file
+        if temp_path and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except:
+                pass
+
+
+if __name__ == "__main__":
+    # Get configuration from environment
+    host = os.getenv("RAG_SERVICE_HOST", "127.0.0.1")
+    port = int(os.getenv("RAG_SERVICE_PORT", "8001"))
+
+    print(f"Starting RAG-Langchain service on {host}:{port}")
+
+    uvicorn.run(
+        app,
+        host=host,
+        port=port,
+        log_level="info"
+    )
