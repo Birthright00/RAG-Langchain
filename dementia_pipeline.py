@@ -642,19 +642,21 @@ class DementiaImageAnalysisPipeline:
         print("Saving to cache...")
         self.rag.save_graph_data(graph_path)
 
-        print("\n✅ Guidelines loaded and cached successfully!")
+        print("\n Guidelines loaded and cached successfully!")
 
-    def analyze_image(self, image_path: str) -> str:
+    def analyze_image(self, image_path: str, user_context_data: dict = None) -> str:
         """
         Analyze a home image for dementia safety against guidelines.
 
         This matches the approach from dementia_chatbot_gradio_openai.py:
         1. Retrieve relevant guidelines from RAG system
         2. Include guidelines in vision prompt
-        3. Vision model outputs complete formatted analysis
+        3. Include user's personal context (conversation + assessment) if available
+        4. Vision model outputs complete formatted analysis
 
         Args:
             image_path: Path to the image file
+            user_context_data: Optional dict with 'conversation' and 'assessment' data
 
         Returns:
             Analysis report with Item/Guideline/Recommendation format
@@ -665,6 +667,12 @@ class DementiaImageAnalysisPipeline:
 
         if not self.rag.documents_loaded:
             raise RuntimeError("Guidelines not loaded. Call load_guidelines() first.")
+
+        # Format user context if provided
+        user_context_text = ""
+        if user_context_data:
+            user_context_text = self._format_user_context(user_context_data)
+            print("   Including personalized user context in analysis")
 
         # Validate image path
         if not os.path.exists(image_path):
@@ -734,6 +742,7 @@ class DementiaImageAnalysisPipeline:
 
 You are an expert occupational therapist specializing in dementia care environments. You MUST examine the actual image provided and give specific, actionable feedback about what you observe.
 
+{user_context_text}
 REFERENCE GUIDELINES FROM KNOWLEDGE BASE:
 {guidelines_context}
 
@@ -870,25 +879,25 @@ IMPORTANT GUIDELINES:
 - If guidelines mention specific products, materials, or standards, use them in recommendations
 
 CRITICAL RULES FOR ITEM NAMING:
-✅ CORRECT: "Sofa", "Floor tiles", "Walls", "Door", "Light fixture", "Window blinds", "TV stand", "Glass partition"
-❌ WRONG: "Sofa color", "Flooring color", "Wall color", "Lighting level", "Contrast between sofa and floor"
+ CORRECT: "Sofa", "Floor tiles", "Walls", "Door", "Light fixture", "Window blinds", "TV stand", "Glass partition"
+ WRONG: "Sofa color", "Flooring color", "Wall color", "Lighting level", "Contrast between sofa and floor"
 
 EXAMPLES OF SPECIFIC RECOMMENDATIONS:
 
 **Example 1:**
-❌ BAD (wrong item name): Item: "Lighting level"
-❌ BAD (has explanation, gives range): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
-✅ GOOD:
+ BAD (wrong item name): Item: "Lighting level"
+ BAD (has explanation, gives range): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
+ GOOD:
 **Item:** Ceiling light fixtures
 **Recommendation:** Install LED recessed downlights providing 450 lux at 3000K color temperature.
 
 **Example 2:**
-❌ BAD: Recommendation: "Consider replacing the sofa with a higher-contrast option, possibly in a warm burgundy or navy blue color (LRV 15-25 range), to make it stand out better from the floor"
-✅ GOOD: Recommendation: "Replace sofa with one upholstered in burgundy fabric (LRV 20)."
+ BAD: Recommendation: "Consider replacing the sofa with a higher-contrast option, possibly in a warm burgundy or navy blue color (LRV 15-25 range), to make it stand out better from the floor"
+ GOOD: Recommendation: "Replace sofa with one upholstered in burgundy fabric (LRV 20)."
 
 **Example 3:**
-❌ BAD: Recommendation: "The walls should be painted in a lighter, warmer tone that provides better contrast"
-✅ GOOD: Recommendation: "Repaint walls in warm cream (LRV 72) with matte finish."
+ BAD: Recommendation: "The walls should be painted in a lighter, warmer tone that provides better contrast"
+ GOOD: Recommendation: "Repaint walls in warm cream (LRV 72) with matte finish."
 
 Begin your analysis now."""
 
@@ -914,6 +923,97 @@ Begin your analysis now."""
             import traceback
             error_details = traceback.format_exc()
             raise RuntimeError(f"Error analyzing image: {str(e)}\n\nDetails:\n{error_details}")
+
+    def _format_user_context(self, user_context_data: dict) -> str:
+        """
+        Format user conversation and assessment data for inclusion in the analysis prompt.
+
+        Args:
+            user_context_data: Dict with 'conversation' and/or 'assessment' keys
+
+        Returns:
+            Formatted string to include in the prompt
+        """
+        if not user_context_data:
+            return ""
+
+        context_parts = []
+        context_parts.append("="*70)
+        context_parts.append("USER'S PERSONAL CONTEXT & PREFERENCES")
+        context_parts.append("="*70)
+        context_parts.append("")
+        context_parts.append("IMPORTANT: Use this personalized information to create recommendations that:")
+        context_parts.append("1. Respect the user's specific needs and memories")
+        context_parts.append("2. Avoid modifying things they explicitly want to keep unchanged")
+        context_parts.append("3. Support the activities and environments they value")
+        context_parts.append("")
+
+        # Format conversation data (from Memory Bot)
+        if 'conversation' in user_context_data:
+            conv = user_context_data['conversation']
+            context_parts.append("--- USER'S MEMORIES & VALUED ACTIVITIES ---")
+            context_parts.append("")
+
+            topics = conv.get('selectedTopics', [])
+            if topics:
+                context_parts.append(f"Important activities to the user: {', '.join(topics)}")
+                context_parts.append("")
+
+            topic_convos = conv.get('topicConversations', {})
+            if topic_convos:
+                context_parts.append("Detailed memories shared by the user:")
+                context_parts.append("")
+                for topic, details in topic_convos.items():
+                    context_parts.append(f"**{topic}:**")
+
+                    if details.get('fixedAnswer'):
+                        q = details.get('fixedQuestion', '')
+                        context_parts.append(f"  Q: {q}")
+                        context_parts.append(f"  A: {details['fixedAnswer']}")
+
+                    if details.get('firstAIAnswer'):
+                        q = details.get('firstAIQuestion', '')
+                        context_parts.append(f"  Q: {q}")
+                        context_parts.append(f"  A: {details['firstAIAnswer']}")
+
+                    if details.get('secondAIAnswer'):
+                        q = details.get('secondAIQuestion', '')
+                        context_parts.append(f"  Q: {q}")
+                        context_parts.append(f"  A: {details['secondAIAnswer']}")
+
+                    context_parts.append("")
+
+        # Format assessment data (from Fix My Home)
+        if 'assessment' in user_context_data:
+            assess = user_context_data['assessment']
+            context_parts.append("--- USER'S SPECIFIC CONCERNS & CONSTRAINTS ---")
+            context_parts.append("")
+
+            issues = assess.get('selectedIssues', [])
+            if issues:
+                context_parts.append(f"Specific safety concerns: {', '.join(issues)}")
+                context_parts.append("")
+
+            comments = assess.get('comments', '').strip()
+            if comments:
+                context_parts.append("Additional comments from user:")
+                context_parts.append(f'  "{comments}"')
+                context_parts.append("")
+
+            no_change = assess.get('noChangeComments', '').strip()
+            if no_change:
+                context_parts.append("⚠️ CRITICAL - DO NOT MODIFY: ")
+                context_parts.append(f'  "{no_change}"')
+                context_parts.append("")
+                context_parts.append("  → Your recommendations MUST NOT suggest changes to items or features")
+                context_parts.append("     mentioned in this constraint. Find alternative solutions that respect")
+                context_parts.append("     this preference while still addressing safety concerns.")
+                context_parts.append("")
+
+        context_parts.append("="*70)
+        context_parts.append("")
+
+        return "\n".join(context_parts)
 
 
 def main():

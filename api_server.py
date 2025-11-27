@@ -12,7 +12,7 @@ import json
 import re
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
@@ -117,12 +117,16 @@ async def health_check():
 
 
 @app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_image(file: UploadFile = File(...)):
+async def analyze_image(
+    file: UploadFile = File(...),
+    user_context: Optional[str] = Form(None)
+):
     """
     Analyze an uploaded image for dementia safety issues.
 
     Args:
         file: Image file (JPEG, PNG, etc.)
+        user_context: Optional JSON string with user conversation and assessment data
 
     Returns:
         Analysis results with both text and JSON
@@ -131,6 +135,14 @@ async def analyze_image(file: UploadFile = File(...)):
     try:
         # Lazy-load pipeline on first request
         current_pipeline = get_pipeline()
+
+        # Parse user context if provided
+        context_data = None
+        if user_context:
+            try:
+                context_data = json.loads(user_context)
+            except json.JSONDecodeError as e:
+                print(f"[API] Warning: Failed to parse user_context JSON: {e}")
 
         # Save uploaded file temporarily
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
@@ -141,9 +153,9 @@ async def analyze_image(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
 
-        # Run analysis
+        # Run analysis with user context
         print(f"Analyzing image: {temp_path}")
-        analysis_text = current_pipeline.analyze_image(str(temp_path))
+        analysis_text = current_pipeline.analyze_image(str(temp_path), user_context_data=context_data)
 
         # Extract JSON from analysis
         analysis_json = extract_json_from_analysis(analysis_text)
