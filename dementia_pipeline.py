@@ -673,6 +673,11 @@ class DementiaImageAnalysisPipeline:
         if user_context_data:
             user_context_text = self._format_user_context(user_context_data)
             print("   Including personalized user context in analysis")
+            # DEBUG: Log what's being included
+            print(f"   DEBUG - User context data keys: {user_context_data.keys()}")
+            if 'preferenceSummary' in user_context_data:
+                print(f"   DEBUG - Preference summary present: {user_context_data['preferenceSummary'][:100]}...")
+            print(f"   DEBUG - Formatted context length: {len(user_context_text)} chars")
 
         # Validate image path
         if not os.path.exists(image_path):
@@ -745,6 +750,18 @@ You are an expert occupational therapist specializing in dementia care environme
 {user_context_text}
 REFERENCE GUIDELINES FROM KNOWLEDGE BASE:
 {guidelines_context}
+
+**BALANCING SAFETY AND PERSONALIZATION**
+Your recommendations must EQUALLY prioritize:
+1. Dementia design safety guidelines (non-negotiable - safety first)
+2. User's personal preferences and identity (listed above in "EXTRACTED USER DESIGN PREFERENCES" if present)
+
+When making recommendations:
+- ALWAYS ensure dementia safety standards are met (this is the baseline)
+- WITHIN the safety constraints, incorporate user preferences wherever possible
+- If user preferences align with safety guidelines, explicitly mention this positive alignment
+- If user preferences conflict with safety, find creative compromises (e.g., if user likes dark colors but safety requires contrast, use dark colors for accent pieces against light backgrounds)
+- If no user preferences are provided, proceed with standard evidence-based recommendations
 
 COMPREHENSIVE ASSESSMENT AREAS:
 
@@ -982,6 +999,21 @@ Begin your analysis now."""
                         context_parts.append(f"  A: {details['secondAIAnswer']}")
 
                     context_parts.append("")
+
+        # Format preference summary (from Memory Bot conversation analysis)
+        if 'preferenceSummary' in user_context_data:
+            pref_summary = user_context_data['preferenceSummary'].strip()
+            if pref_summary:
+                context_parts.append("--- EXTRACTED USER DESIGN PREFERENCES ---")
+                context_parts.append("")
+                context_parts.append("The following preferences were extracted from the user's conversation with Memory Bot")
+                context_parts.append("and balanced against dementia design guidelines:")
+                context_parts.append("")
+                context_parts.append(pref_summary)
+                context_parts.append("")
+                context_parts.append("IMPORTANT: Incorporate these preferences into your recommendations wherever possible,")
+                context_parts.append("while maintaining dementia design safety standards.")
+                context_parts.append("")
 
         # Format assessment data (from Fix My Home)
         if 'assessment' in user_context_data:

@@ -266,22 +266,58 @@ CRITICAL GUIDELINES:
 - Be specific and actionable in your summaries
 - If no clear preferences are found in a category, state that explicitly
 
+TRANSLATING INTANGIBLE TO TANGIBLE DESIGN ELEMENTS:
+When users mention intangible preferences (music, songs, smells, emotions, memories, feelings), you MUST translate
+them into tangible, implementable design elements for spatial design:
+
+**Music & Songs**:
+- Extract associated colors (album covers, music video aesthetics, cultural associations)
+- Identify emotional qualities → translate to textures (soft/smooth for calm, rough/textured for energetic)
+- Consider lyrics/themes → suggest symbolic representations or patterns
+- Example: "甜蜜蜜" (Chinese love song) → soft pink/warm red tones from era, smooth rounded textures for tenderness,
+  heart or floral motifs representing love and sweetness
+
+**Smells & Scents**:
+- Translate to visual color palettes (lavender → purple/soft blue, coffee → warm browns, ocean → blues/teals)
+- Convert to textures/materials (fresh linen → smooth cotton fabrics, wood → natural wood grains)
+- Consider source objects as decor elements (citrus → fruit bowl, flowers → floral patterns)
+- Example: "Smell of grandmother's kitchen" → warm yellows/oranges, wood textures, vintage ceramic patterns
+
+**Emotions & Feelings**:
+- Map to color psychology (joy → yellows, calm → blues, comfort → earth tones)
+- Translate to spatial qualities (openness → spacious layouts, coziness → enclosed nooks)
+- Convert to tactile elements (security → soft textiles, energy → varied textures)
+
+**Memories & Places**:
+- Extract visual elements (beach → sandy beiges, ocean blues, natural textures)
+- Identify cultural/regional design elements (traditional patterns, architectural features)
+- Suggest representative objects or imagery
+
+**Abstract Concepts**:
+- Always ground in concrete design recommendations
+- Use metaphorical translations (freedom → open spaces + light colors, warmth → reds/oranges + soft fabrics)
+
+For EVERY intangible preference mentioned, you must provide:
+1. The tangible translation (colors, textures, patterns, materials)
+2. Rationale connecting the intangible to the tangible
+3. Specific implementation suggestions compatible with dementia design guidelines
+
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
 {
   "color_and_contrast": {
-    "user_preferences": ["specific preference 1", "specific preference 2"],
+    "user_preferences": ["specific preference 1 (with intangible→tangible translations)", "specific preference 2"],
     "guideline_considerations": ["relevant guideline 1", "relevant guideline 2"],
     "balanced_recommendations": ["recommendation 1", "recommendation 2"],
     "confidence_level": "high|medium|low"
   },
   "familiarity_and_identity": {
-    "user_preferences": ["specific preference 1", "specific preference 2"],
+    "user_preferences": ["specific preference 1 (with intangible→tangible translations)", "specific preference 2"],
     "guideline_considerations": ["relevant guideline 1", "relevant guideline 2"],
     "balanced_recommendations": ["recommendation 1", "recommendation 2"],
     "confidence_level": "high|medium|low"
   },
-  "overall_summary": "Brief 2-3 sentence summary of key findings"
+  "overall_summary": "Brief 2-3 sentence summary of key findings including how intangible preferences were translated to tangible design elements"
 }
 """
 
