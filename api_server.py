@@ -24,8 +24,9 @@ env_path = parent_dir / ".env"
 if env_path.exists():
     load_dotenv(env_path)
 
-# Import the dementia pipeline
+# Import the dementia pipeline and preference summarizer
 from dementia_pipeline import DementiaImageAnalysisPipeline
+from summarize_preferences import PreferenceSummarizer
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -34,8 +35,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Global pipeline instance
+# Global instances
 pipeline: Optional[DementiaImageAnalysisPipeline] = None
+preference_summarizer: Optional[PreferenceSummarizer] = None
 
 
 class AnalysisResponse(BaseModel):
@@ -51,6 +53,22 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+
+
+class ConversationData(BaseModel):
+    """Request model for conversation data"""
+    allMessages: list
+    selectedTopics: Optional[list] = None
+    topicConversations: Optional[Dict[str, Any]] = None
+    timestamp: Optional[str] = None
+    _id: Optional[str] = None
+
+
+class PreferenceSummaryResponse(BaseModel):
+    """Response model for preference summarization"""
+    success: bool
+    summary: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
 
 
 def extract_json_from_analysis(analysis_text: str) -> Optional[Dict]:
@@ -78,6 +96,22 @@ def get_pipeline():
         pipeline.load_guidelines(use_llm_extraction=False, force_reload=False)
         print("RAG-Langchain pipeline ready!")
     return pipeline
+
+
+def get_preference_summarizer():
+    """Lazy-load preference summarizer on first use"""
+    global preference_summarizer
+    if preference_summarizer is None:
+        print("Initializing Preference Summarizer (first request)...")
+        preference_summarizer = PreferenceSummarizer(
+            model="gpt-4o",
+            temperature=0.3,
+            pdf_folder="./Dementia Guidelines",
+            persist_dir="./chroma_db",
+            load_rag=True
+        )
+        print("Preference Summarizer ready!")
+    return preference_summarizer
 
 
 @app.on_event("startup")
@@ -181,6 +215,44 @@ async def analyze_image(
                 temp_path.unlink()
             except:
                 pass
+
+
+@app.post("/summarize-preferences", response_model=PreferenceSummaryResponse)
+async def summarize_preferences(conversation: ConversationData):
+    """
+    Analyze conversation logs to extract user preferences for dementia-friendly design.
+
+    Args:
+        conversation: Conversation data with messages, topics, etc.
+
+    Returns:
+        Preference summary with color/contrast and familiarity/identity recommendations
+    """
+    try:
+        # Lazy-load preference summarizer on first request
+        summarizer = get_preference_summarizer()
+
+        # Convert Pydantic model to dict for processing
+        conversation_dict = conversation.model_dump()
+
+        print(f"[API] Summarizing preferences for conversation with {len(conversation_dict.get('allMessages', []))} messages")
+
+        # Run preference summarization
+        summary = summarizer.summarize(conversation_dict)
+
+        return {
+            "success": True,
+            "summary": summary
+        }
+
+    except Exception as e:
+        import traceback
+        error_detail = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"[API] Error in preference summarization: {error_detail}")
+        return {
+            "success": False,
+            "error": error_detail
+        }
 
 
 if __name__ == "__main__":
