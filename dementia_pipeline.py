@@ -756,12 +756,15 @@ Your recommendations must EQUALLY prioritize:
 1. Dementia design safety guidelines (non-negotiable - safety first)
 2. User's personal preferences and identity (listed above in "EXTRACTED USER DESIGN PREFERENCES" if present)
 
+CRITICAL INSTRUCTION: Check the "USER'S PERSONAL CONTEXT & PREFERENCES" section above BEFORE making recommendations.
+
 When making recommendations:
 - ALWAYS ensure dementia safety standards are met (this is the baseline)
-- WITHIN the safety constraints, incorporate user preferences wherever possible
-- If user preferences align with safety guidelines, explicitly mention this positive alignment
+- WITHIN the safety constraints, actively incorporate user preferences into your specific color/material choices
+- If user preferences align with safety guidelines, explicitly mention this positive alignment in your Explanation
 - If user preferences conflict with safety, find creative compromises (e.g., if user likes dark colors but safety requires contrast, use dark colors for accent pieces against light backgrounds)
-- If no user preferences are provided, proceed with standard evidence-based recommendations
+- When choosing between multiple safe options, SELECT the option that matches user preferences
+- If no user preferences are provided, proceed with standard evidence-based recommendations from guidelines
 
 COMPREHENSIVE ASSESSMENT AREAS:
 
@@ -837,8 +840,8 @@ For each issue:
 **Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
 **Issue:** [Detailed description of the problem with this specific item - be specific about colors, materials observed in the image]
 **Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
-**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive. Choose colors and materials appropriate for the ACTUAL room you are analyzing.]
-**Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit, e.g., "This creates sufficient visual contrast making the sofa clearly visible, reducing fall risk and supporting independent movement as per dementia-friendly design principles."]
+**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive. IMPORTANT: If user preferences are provided above, incorporate them into your color/material choices while maintaining safety standards (e.g., if user prefers warm tones, choose warm colors that meet LRV requirements).]
+**Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit. If your recommendation incorporates user preferences, mention this alignment (e.g., "This burgundy fabric meets the user's preference for warm tones while providing LRV 20 contrast for fall prevention")]
 
 ---
 
@@ -878,7 +881,7 @@ IMPORTANT GUIDELINES:
 - Consider ALL aspects of dementia-friendly design, not just contrast
 - Be specific about what you observe (e.g., "dark grey sofa on dark grey floor" not just "poor contrast")
 - **CRITICAL: Quote EXACT text from the REFERENCE GUIDELINES above for each issue** - don't paraphrase
-- **CRITICAL: Recommendations must be SPECIFIC, AUTHORITATIVE, and EVIDENCE-BASED:**
+- **CRITICAL: Recommendations must be SPECIFIC, AUTHORITATIVE, EVIDENCE-BASED, and PERSONALIZED:**
   * You are the dementia design expert - make definitive decisions
   * Give ONE specific value, not ranges (e.g., "LRV 45" not "LRV 40-50")
   * Give ONE specific color, not choices (e.g., "burgundy" not "burgundy or navy")
@@ -886,8 +889,10 @@ IMPORTANT GUIDELINES:
   * Use specific color names, materials, product types from the guidelines
   * Include exact technical specifications (e.g., LRV values, lux levels, color temperatures)
   * Provide measurable, actionable directives (e.g., "Install LED lights at 450 lux" not "add more light")
+  * **PERSONALIZE recommendations using user preferences from the context above when provided**
   * NO explanatory text in the Recommendation field - save explanations for the Explanation field
 - Read through ALL the reference guidelines carefully and apply them to what you see
+- Read through the USER'S PERSONAL CONTEXT & PREFERENCES section above and integrate preferences into recommendations
 - Include both positive observations and areas for improvement
 - If guidelines mention specific products, materials, or standards, use them in recommendations
 
@@ -903,6 +908,11 @@ RECOMMENDATION FORMAT RULES:
 - Include technical specifications: LRV values, lux levels, color temperatures, dimensions
 - Be concise: No explanations in this field
 - Base colors/materials on what would work with the ACTUAL room you observe
+- **CRITICAL: If user design preferences are provided above, actively incorporate them:**
+  * If user likes warm tones → choose warm colors that meet safety LRV requirements
+  * If user values specific memories/items → avoid recommending removal of those items
+  * If user prefers certain materials/styles → select from those options when safe
+  * Balance personalization with safety - never compromise safety for aesthetics
 
 Begin your analysis now."""
 
