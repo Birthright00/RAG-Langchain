@@ -837,11 +837,7 @@ For each issue:
 **Category:** [One of: Contrast, Lighting, Flooring, Wayfinding, Safety, Color, Spatial Design, Environmental Cues]
 **Issue:** [Detailed description of the problem with this specific item - be specific about colors, materials observed in the image]
 **Guideline Reference:** [Quote the SPECIFIC, EXACT text from the reference guidelines above that addresses this issue]
-**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Examples:
-  - "Replace sofa with one upholstered in solid burgundy fabric (LRV 15-25)."
-  - "Repaint walls in warm cream (LRV 70-75) with matte finish."
-  - "Install LED recessed lights providing 450 lux at 3000K color temperature."
-  Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive.]
+**Recommendation:** [You are the dementia design expert. Give ONE SPECIFIC directive with exact specifications. Format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS." Make the decision - do NOT offer choices or say "consider" or "could". State exactly what should be done. NO explanations in this field - just the directive. Choose colors and materials appropriate for the ACTUAL room you are analyzing.]
 **Explanation:** [Explain WHY this change is needed for people with dementia - reference the guideline principle and explain the benefit, e.g., "This creates sufficient visual contrast making the sofa clearly visible, reducing fall risk and supporting independent movement as per dementia-friendly design principles."]
 
 ---
@@ -866,12 +862,12 @@ For each issue:
   }},
   "issues": [
     {{
-      "item": "Physical item name only (e.g., 'Sofa', 'Floor tiles', 'Door')",
-      "category": "Category name",
-      "issue": "Description of the issue with this item",
-      "guideline_reference": "Exact quote from reference guidelines",
-      "recommendation": "Direct instruction only (e.g., 'Replace sofa with one upholstered in burgundy fabric (LRV 15-25).')",
-      "explanation": "Why this change benefits people with dementia (e.g., 'Creates visual contrast for fall prevention and supports independent movement.')"
+      "item": <item_name>,
+      "category": <category>,
+      "issue": <issue_description>,
+      "guideline_reference": <quoted_guideline>,
+      "recommendation": <actionable_instruction>,
+      "explanation": <dementia_benefit>
     }}
   ]
 }}
@@ -899,22 +895,14 @@ CRITICAL RULES FOR ITEM NAMING:
  CORRECT: "Sofa", "Floor tiles", "Walls", "Door", "Light fixture", "Window blinds", "TV stand", "Glass partition"
  WRONG: "Sofa color", "Flooring color", "Wall color", "Lighting level", "Contrast between sofa and floor"
 
-EXAMPLES OF SPECIFIC RECOMMENDATIONS:
-
-**Example 1:**
- BAD (wrong item name): Item: "Lighting level"
- BAD (has explanation, gives range): Recommendation: "Replace existing ceiling lights with LED downlights providing 300-500 lux as per guidelines for living spaces, with warm white color temperature (2700-3000K) to reduce agitation"
- GOOD:
-**Item:** Ceiling light fixtures
-**Recommendation:** Install LED recessed downlights providing 450 lux at 3000K color temperature.
-
-**Example 2:**
- BAD: Recommendation: "Consider replacing the sofa with a higher-contrast option, possibly in a warm burgundy or navy blue color (LRV 15-25 range), to make it stand out better from the floor"
- GOOD: Recommendation: "Replace sofa with one upholstered in burgundy fabric (LRV 20)."
-
-**Example 3:**
- BAD: Recommendation: "The walls should be painted in a lighter, warmer tone that provides better contrast"
- GOOD: Recommendation: "Repaint walls in warm cream (LRV 72) with matte finish."
+RECOMMENDATION FORMAT RULES:
+- Use the format: "ACTION the ITEM with SPECIFIC-MATERIAL/COLOR/SPECS."
+- State ONE specific value (not ranges): Use "LRV 45" not "LRV 40-50"
+- State ONE specific color (not choices): Use "navy blue" not "navy or burgundy"
+- Use imperative verbs: "Replace", "Install", "Repaint" (NOT "Consider" or "Could")
+- Include technical specifications: LRV values, lux levels, color temperatures, dimensions
+- Be concise: No explanations in this field
+- Base colors/materials on what would work with the ACTUAL room you observe
 
 Begin your analysis now."""
 
